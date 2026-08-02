@@ -1,0 +1,19 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# Cursor / Competitive Programming Helper
+.cph/
+
+# Environment files
+.env
+
+# Node
+node_modules/

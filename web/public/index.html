@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chess</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="view-home" data-theme="classic" data-bg="light">
+  <!-- LANDING PAGE ONLY — no gameplay controls here -->
+  <section id="menu" class="home">
+    <div class="home-ambient" aria-hidden="true"></div>
+
+    <header class="home-brand">
+      <img
+        class="home-title"
+        src="/assets/chess-title.png"
+        alt="CHESS"
+        width="559"
+        height="447"
+      />
+    </header>
+
+    <div class="home-row">
+      <!-- Board on the LEFT -->
+      <div class="home-board-shell">
+        <div class="home-board-wrap" aria-hidden="true">
+          <div id="preview-board" class="board preview-board"></div>
+          <div id="preview-confetti" class="preview-confetti"></div>
+        </div>
+      </div>
+
+      <!-- Mode card on the RIGHT -->
+      <div class="mode-card">
+        <div class="mode-card-crown" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+            <path d="M3 8l3.5 3L9 5l3 6 3-6 2.5 6L21 8v11H3V8z"/>
+          </svg>
+        </div>
+        <h1>Get started</h1>
+        <p class="sub">Choose your game mode</p>
+        <div class="menu-actions">
+          <button type="button" data-mode="local-pvp">
+            <span class="mode-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                <path d="M12 2a2.2 2.2 0 0 1 2.1 2.7l-.3 1.1h1.7a1 1 0 0 1 0 2h-.9l.6 2.2A3.5 3.5 0 0 1 17 13.5V15H7v-1.5a3.5 3.5 0 0 1 1.8-3.5l.6-2.2H8a1 1 0 1 1 0-2h1.7l-.3-1.1A2.2 2.2 0 0 1 12 2zm-4 15h8v2.5a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 8 19.5V17z"/>
+              </svg>
+            </span>
+            Two Player
+          </button>
+          <button type="button" data-mode="local-ai">
+            <span class="mode-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                <path d="M12 2l1.6 3.2L17 6l-2.4 2.1.7 3.4L12 9.8 8.7 11.5l.7-3.4L7 6l3.4-.8L12 2zm-5 12h10a1 1 0 0 1 1 1v1H6v-1a1 1 0 0 1 1-1zm-1 4h12v2.2A1.8 1.8 0 0 1 16.2 22H7.8A1.8 1.8 0 0 1 6 20.2V18z"/>
+              </svg>
+            </span>
+            Single Player
+          </button>
+          <button type="button" data-mode="online-create">
+            <span class="mode-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M3 12h18M12 3c2.5 2.8 3.8 5.8 3.8 9S14.5 18.2 12 21c-2.5-2.8-3.8-5.8-3.8-9S9.5 5.8 12 3z"/>
+              </svg>
+            </span>
+            Play Online
+          </button>
+        </div>
+        <p id="menu-error" class="error" hidden></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAMEPLAY ONLY — shown after a mode is selected -->
+  <section id="game" class="game-screen" hidden>
+    <header class="top-nav">
+      <button type="button" id="btn-home" class="nav-btn">Home</button>
+      <span id="mode-label" class="mode-pill">Game</span>
+
+      <label class="nav-field">
+        <span>Board</span>
+        <select id="theme-select">
+          <option value="classic">Classic Brown</option>
+          <option value="green">Green</option>
+          <option value="blue">Blue</option>
+          <option value="gray">Gray</option>
+          <option value="purple">Purple</option>
+        </select>
+      </label>
+
+      <label class="nav-field">
+        <span>Background</span>
+        <select id="bg-select">
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </label>
+
+      <label class="nav-field" id="timer-field">
+        <span>Timer</span>
+        <select id="timer-select">
+          <option value="1+0">1+0</option>
+          <option value="3+0">3+0</option>
+          <option value="5+0" selected>5+0</option>
+          <option value="10+0">10+0</option>
+          <option value="3+2">3+2</option>
+          <option value="5+3">5+3</option>
+        </select>
+      </label>
+    </header>
+
+    <div class="game-body">
+      <div class="board-column">
+        <div class="clocks" id="clocks">
+          <div class="clock" id="clock-black" data-side="b">
+            <span class="clock-label">Black</span>
+            <span class="clock-time" id="time-black">5:00</span>
+          </div>
+          <div class="clock" id="clock-white" data-side="w">
+            <span class="clock-label">White</span>
+            <span class="clock-time" id="time-white">5:00</span>
+          </div>
+        </div>
+
+        <div class="board-wrap">
+          <div id="board" class="board" aria-label="Chess board"></div>
+        </div>
+
+        <p id="status" class="status">Your turn</p>
+        <p id="you-are" class="muted"></p>
+        <p id="game-error" class="error" hidden></p>
+
+        <div id="play-controls" class="play-controls" hidden>
+          <button type="button" id="btn-undo">Undo</button>
+          <button type="button" id="btn-reset">Reset</button>
+        </div>
+      </div>
+
+      <aside id="lobby-panel" class="lobby-panel" hidden>
+        <h3>Invite a friend</h3>
+        <p class="share-label">Share this link:</p>
+        <code id="share-link"></code>
+        <button type="button" id="btn-copy" class="primary-btn">Copy link</button>
+        <p class="room-code-line">Room code: <strong id="room-code"></strong></p>
+        <p id="wait-msg" class="muted">Waiting for opponent…</p>
+      </aside>
+
+      <p id="room-badge" class="room-badge" hidden>Online Match</p>
+    </div>
+  </section>
+
+  <script src="/js/board.js"></script>
+  <script src="/js/ai.js"></script>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

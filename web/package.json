@@ -1,0 +1,15 @@
+{
+  "name": "chess-online",
+  "version": "1.0.0",
+  "description": "Online chess — local PvP, vs AI, and share-link multiplayer",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "chess.js": "^1.0.0",
+    "express": "^4.21.0",
+    "socket.io": "^4.8.0"
+  }
+}
