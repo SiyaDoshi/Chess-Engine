@@ -41,6 +41,8 @@ const bgSelect = document.getElementById('bg-select');
 const timerSelect = document.getElementById('timer-select');
 const timerField = document.getElementById('timer-field');
 const levelField = document.getElementById('level-field');
+const settingsBtn = document.getElementById('btn-settings');
+const settingsMenu = document.getElementById('settings-menu');
 const levelSelect = document.getElementById('level-select');
 const timeWhiteEl = document.getElementById('time-white');
 const timeBlackEl = document.getElementById('time-black');
@@ -98,6 +100,21 @@ document.body.dataset.bg = savedBg;
 bgSelect.addEventListener('change', () => {
   document.body.dataset.bg = bgSelect.value;
   localStorage.setItem('chess-bg', bgSelect.value);
+});
+
+function setSettingsOpen(open) {
+  settingsMenu.hidden = !open;
+  settingsBtn.setAttribute('aria-expanded', String(open));
+}
+settingsBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  setSettingsOpen(settingsMenu.hidden);
+});
+document.addEventListener('click', (e) => {
+  if (!settingsMenu.hidden && !settingsMenu.contains(e.target)) setSettingsOpen(false);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') setSettingsOpen(false);
 });
 
 levelSelect.value = engineLevel;

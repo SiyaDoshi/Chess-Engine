@@ -478,7 +478,51 @@ body.view
   color: var(--muted);
 }
 
-.nav-field:first-of-type { margin-left: auto; }
+#level-field { margin-left: auto; }
+#level-field[hidden] + #timer-field { margin-left: auto; }
+
+.icon-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.icon-btn:hover,
+.icon-btn[aria-expanded="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.settings { position: relative; }
+
+.settings-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  min-width: 230px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.85rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.settings-menu .nav-field {
+  justify-content: space-between;
+  margin: 0;
+}
 
 .nav-field select {
   border: 1px solid var(--border);
@@ -781,9 +825,14 @@ body.view
 }
 
 @media (max-width: 640px) {
-  .nav-field {
-    margin-left: 0;
-    width: 100%;
-    justify-content: space-between;
+  /* Keep the top bar on one line: Home, difficulty, timer, settings */
+  .top-nav {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    padding: 0.5rem 0.6rem;
   }
+  .top-nav .mode-pill { display: none; }
+  .top-nav > .nav-field > span { display: none; }
+  .top-nav > .nav-field { margin-left: 0; }
+  .top-nav > .nav-btn { margin-right: auto; }
 }
