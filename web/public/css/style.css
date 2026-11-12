@@ -613,6 +613,37 @@ body.view
   color: var(--error);
 }
 
+.player-info {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+/* Captured pieces: small and overlapping, like a real scoresheet tray */
+.captured {
+  display: flex;
+  align-items: center;
+  min-height: 20px;
+  overflow: hidden;
+}
+.captured img {
+  width: 22px;
+  height: 22px;
+  margin-right: -6px;
+}
+/* Keep black pieces readable on the dark panels */
+body:not([data-bg="light"]) .captured img {
+  filter: drop-shadow(0 0 1.5px rgba(243, 234, 216, 0.75));
+}
+.captured img + .material-lead,
+.material-lead {
+  margin-left: 10px;
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: var(--muted);
+}
+
 .player-name {
   font-size: 0.95rem;
   font-weight: 600;

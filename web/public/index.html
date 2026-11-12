@@ -140,7 +140,10 @@
     <div class="game-body">
       <div class="board-area">
         <div class="player-bar" id="clock-black" data-side="b">
-          <span class="player-name clock-label">Black</span>
+          <div class="player-info">
+            <span class="player-name clock-label">Black</span>
+            <span class="captured" id="captured-by-black" aria-label="Pieces Black has captured"></span>
+          </div>
           <span class="clock-time" id="time-black">5:00</span>
         </div>
 
@@ -154,7 +157,10 @@
         </div>
 
         <div class="player-bar" id="clock-white" data-side="w">
-          <span class="player-name clock-label">White</span>
+          <div class="player-info">
+            <span class="player-name clock-label">White</span>
+            <span class="captured" id="captured-by-white" aria-label="Pieces White has captured"></span>
+          </div>
           <span class="clock-time" id="time-white">5:00</span>
         </div>
       </div>

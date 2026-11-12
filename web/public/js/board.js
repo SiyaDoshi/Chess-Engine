@@ -393,3 +393,4 @@ class ChessBoard {
 
 window.ChessBoard = ChessBoard;
 window.setPieceSet = setPieceSet;
+window.pieceUrl = pieceUrl;

@@ -46,6 +46,8 @@ const levelField = document.getElementById('level-field');
 const settingsBtn = document.getElementById('btn-settings');
 const engineCard = document.getElementById('engine-card');
 const moveListEl = document.getElementById('move-list');
+const capturedByWhiteEl = document.getElementById('captured-by-white');
+const capturedByBlackEl = document.getElementById('captured-by-black');
 const moveListEmptyEl = document.getElementById('move-list-empty');
 const evalBarEl = document.getElementById('eval-bar');
 const engineEvalEl = document.getElementById('engine-eval');
@@ -95,7 +97,13 @@ let onlineTurn = 'w';
 let previewBoard = null;
 let previewChess = null;
 
-const board = new ChessBoard(boardEl, { onMove: handleBoardMove, onRender: renderMoveList });
+const board = new ChessBoard(boardEl, {
+  onMove: handleBoardMove,
+  onRender: (game) => {
+    renderMoveList(game);
+    renderCaptured(game);
+  },
+});
 
 // Board colors (the homepage preview always uses classic brown via CSS).
 const savedTheme = localStorage.getItem('chess-theme') || 'classic';
@@ -355,6 +363,46 @@ function renderMoveList(game) {
   moveListEl.replaceChildren(...items);
   moveListEmptyEl.hidden = sans.length > 0;
   moveListEl.scrollTop = moveListEl.scrollHeight;
+}
+
+const START_COUNT = { p: 8, n: 2, b: 2, r: 2, q: 1 };
+const POINTS = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+
+/**
+ * Captured pieces next to each player, plus "+N" for whoever is ahead in
+ * material (pawn 1, knight/bishop 3, rook 5, queen 9).
+ */
+function renderCaptured(game) {
+  const count = { w: { p: 0, n: 0, b: 0, r: 0, q: 0 }, b: { p: 0, n: 0, b: 0, r: 0, q: 0 } };
+  let material = 0; // White minus Black
+  for (const row of game.board()) {
+    for (const p of row) {
+      if (!p || p.type === 'k') continue;
+      count[p.color][p.type]++;
+      material += (p.color === 'w' ? 1 : -1) * POINTS[p.type];
+    }
+  }
+  const fill = (el, victimColor, lead) => {
+    const imgs = [];
+    for (const type of ['q', 'r', 'b', 'n', 'p']) {
+      const missing = Math.max(0, START_COUNT[type] - count[victimColor][type]);
+      for (let i = 0; i < missing; i++) {
+        const img = document.createElement('img');
+        img.src = window.pieceUrl(victimColor + type.toUpperCase());
+        img.alt = '';
+        imgs.push(img);
+      }
+    }
+    if (lead > 0) {
+      const adv = document.createElement('span');
+      adv.className = 'material-lead';
+      adv.textContent = `+${lead}`;
+      imgs.push(adv);
+    }
+    el.replaceChildren(...imgs);
+  };
+  fill(capturedByWhiteEl, 'b', material);
+  fill(capturedByBlackEl, 'w', -material);
 }
 
 /** Engine score (centipawns, White's view) as "+0.4", "-1.2" or "M3". */
