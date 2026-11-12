@@ -108,9 +108,53 @@ let previewChess = null;
 const board = new ChessBoard(boardEl, {
   onMove: handleBoardMove,
   onRender: (game) => {
-    renderMoveList(game);
+    // Any live update (a new move, undo, reset) ends move review.
+    if (game === chess && reviewPly !== null) {
+      reviewPly = null;
+      if (reviewSavedInteractive !== null) board.setInteractive(reviewSavedInteractive);
+      reviewSavedInteractive = null;
+    }
+    renderMoveList(chess ?? game);
     renderCaptured(game);
   },
+});
+
+/*
+ * Move review: Left/Right arrows (or clicking a move) step through the
+ * game without changing it. The board is read-only until you return to
+ * the latest move.
+ */
+let reviewPly = null; // null = showing the live position
+let reviewSavedInteractive = null;
+
+function showPly(ply) {
+  if (!chess || mode === 'menu') return;
+  const history = chess.history({ verbose: true });
+  const target = Math.max(0, Math.min(ply, history.length));
+  if (target === history.length) {
+    board.setGame(chess); // back to live; onRender restores interactivity
+    return;
+  }
+  if (reviewPly === null) reviewSavedInteractive = board.interactive;
+  const replay = new Chess();
+  for (let i = 0; i < target; i++) replay.move(history[i]);
+  board.setGame(replay);
+  reviewPly = target;
+  board.setInteractive(false);
+  renderMoveList(chess);
+}
+
+document.addEventListener('keydown', (e) => {
+  if (mode === 'menu' || !chess) return;
+  if (e.target.closest('select, input, textarea')) return;
+  const live = chess.history().length;
+  const current = reviewPly ?? live;
+  if (e.key === 'ArrowLeft') showPly(current - 1);
+  else if (e.key === 'ArrowRight') showPly(current + 1);
+  else if (e.key === 'Home') showPly(0);
+  else if (e.key === 'End') showPly(live);
+  else return;
+  e.preventDefault();
 });
 
 // Board colors (the homepage preview always uses classic brown via CSS).
@@ -139,6 +183,11 @@ document.body.dataset.bg = savedBg;
 bgSelect.addEventListener('change', () => {
   document.body.dataset.bg = bgSelect.value;
   localStorage.setItem('chess-bg', bgSelect.value);
+});
+
+moveListEl.addEventListener('click', (e) => {
+  const ply = e.target.closest('.move-san')?.dataset.ply;
+  if (ply) showPly(Number(ply));
 });
 
 function setSettingsOpen(open) {
@@ -383,12 +432,15 @@ function renderMoveList(game) {
       const span = document.createElement('span');
       span.className = 'move-san';
       span.textContent = sans[j] ?? '';
+      if (sans[j]) span.dataset.ply = String(j + 1); // position after this move
       if (j === sans.length - 1) span.classList.add('latest');
+      if (reviewPly !== null && j === reviewPly - 1) span.classList.add('viewing');
       li.appendChild(span);
     }
     items.push(li);
   }
   moveListEl.replaceChildren(...items);
+  moveListEl.classList.toggle('reviewing', reviewPly !== null);
   moveListEmptyEl.hidden = sans.length > 0;
   moveListEl.scrollTop = moveListEl.scrollHeight;
 }

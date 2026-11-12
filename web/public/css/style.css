@@ -1117,6 +1117,11 @@ body:not([data-bg="light"]) .captured img {
 
 /* Move list */
 .moves-card .muted { font-size: 0.88rem; }
+.moves-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
 .move-list {
   list-style: none;
   margin: 0;
@@ -1134,9 +1139,20 @@ body:not([data-bg="light"]) .captured img {
 }
 .move-list li:nth-child(odd) { background: var(--panel-2); }
 .move-num { color: var(--muted); }
+.move-san[data-ply] { cursor: pointer; }
+.move-san[data-ply]:hover { text-decoration: underline; }
 .move-san.latest {
   color: var(--accent);
   font-weight: 700;
+}
+/* While reviewing, mark the position being shown instead of the latest */
+.move-list.reviewing .move-san.latest { color: inherit; font-weight: inherit; }
+.move-san.viewing {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-radius: 4px;
+  padding: 0 0.3rem;
+  justify-self: start;
 }
 
 .play-controls {
