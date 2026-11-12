@@ -61,7 +61,9 @@ let onlineGameId = null;
 let aiThinking = false;
 /** Bumped whenever a pending engine reply should be ignored (undo, reset, home). */
 let aiToken = 0;
-let engineLevel = DEFAULT_LEVEL;
+let engineLevel = ['easy', 'medium', 'hard'].includes(localStorage.getItem('chess-level'))
+  ? localStorage.getItem('chess-level')
+  : DEFAULT_LEVEL;
 const engine = new EngineClient();
 let gameOver = false;
 
@@ -85,10 +87,10 @@ let previewChess = null;
 
 const board = new ChessBoard(boardEl, { onMove: handleBoardMove });
 
-// Board color theme (gameplay). App always opens on classic brown;
-// homepage preview stays classic via CSS. User can change themes in-game.
-themeSelect.value = 'classic';
-document.body.dataset.theme = 'classic';
+// Board colors (the homepage preview always uses classic brown via CSS).
+const savedTheme = localStorage.getItem('chess-theme') || 'classic';
+themeSelect.value = savedTheme;
+document.body.dataset.theme = themeSelect.value || 'classic';
 themeSelect.addEventListener('change', () => {
   document.body.dataset.theme = themeSelect.value;
   localStorage.setItem('chess-theme', themeSelect.value);
@@ -132,10 +134,15 @@ levelSelect.value = engineLevel;
 levelSelect.addEventListener('change', () => {
   // Takes effect from the engine's next move.
   engineLevel = levelSelect.value;
+  localStorage.setItem('chess-level', engineLevel);
 });
+
+const savedTimer = localStorage.getItem('chess-timer');
+if (savedTimer && TIME_PRESETS[savedTimer]) timerSelect.value = savedTimer;
 
 timerSelect.addEventListener('change', () => {
   const tc = timerSelect.value;
+  localStorage.setItem('chess-timer', tc);
   if (mode === 'local-pvp' || mode === 'local-ai') {
     applyLocalPreset(tc, true);
     return;
@@ -199,9 +206,6 @@ function showHome() {
   setView('home');
   gameEl.hidden = true;
   menuEl.hidden = false;
-  // Homepage preview always uses classic brown
-  document.body.dataset.theme = 'classic';
-  themeSelect.value = 'classic';
   // Never leave gameplay chrome visible on the landing page
   lobbyPanel.hidden = true;
   roomBadge.hidden = true;
