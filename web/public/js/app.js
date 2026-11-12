@@ -45,6 +45,8 @@ const timerField = document.getElementById('timer-field');
 const levelField = document.getElementById('level-field');
 const settingsBtn = document.getElementById('btn-settings');
 const engineCard = document.getElementById('engine-card');
+const moveListEl = document.getElementById('move-list');
+const moveListEmptyEl = document.getElementById('move-list-empty');
 const evalBarEl = document.getElementById('eval-bar');
 const engineEvalEl = document.getElementById('engine-eval');
 const engineDepthEl = document.getElementById('engine-depth');
@@ -93,7 +95,7 @@ let onlineTurn = 'w';
 let previewBoard = null;
 let previewChess = null;
 
-const board = new ChessBoard(boardEl, { onMove: handleBoardMove });
+const board = new ChessBoard(boardEl, { onMove: handleBoardMove, onRender: renderMoveList });
 
 // Board colors (the homepage preview always uses classic brown via CSS).
 const savedTheme = localStorage.getItem('chess-theme') || 'classic';
@@ -355,6 +357,30 @@ function updateModeUI({ onlineLobby = false, onlinePlaying = false } = {}) {
   } else {
     timerSelect.disabled = false;
   }
+}
+
+/** Move list in pairs: 1. e4 e5  2. Nf3 Nc6 ... with the latest move marked. */
+function renderMoveList(game) {
+  const sans = game.history();
+  const items = [];
+  for (let i = 0; i < sans.length; i += 2) {
+    const li = document.createElement('li');
+    const num = document.createElement('span');
+    num.className = 'move-num';
+    num.textContent = `${i / 2 + 1}.`;
+    li.appendChild(num);
+    for (const j of [i, i + 1]) {
+      const span = document.createElement('span');
+      span.className = 'move-san';
+      span.textContent = sans[j] ?? '';
+      if (j === sans.length - 1) span.classList.add('latest');
+      li.appendChild(span);
+    }
+    items.push(li);
+  }
+  moveListEl.replaceChildren(...items);
+  moveListEmptyEl.hidden = sans.length > 0;
+  moveListEl.scrollTop = moveListEl.scrollHeight;
 }
 
 /** Engine score (centipawns, White's view) as "+0.4", "-1.2" or "M3". */

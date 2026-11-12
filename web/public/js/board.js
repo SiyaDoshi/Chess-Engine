@@ -35,6 +35,7 @@ class ChessBoard {
   constructor(root, options = {}) {
     this.root = root;
     this.onMove = options.onMove || (() => {});
+    this.onRender = options.onRender || null;
     this.chess = null;
     this.orientation = 'w';
     this.selected = null;
@@ -318,6 +319,7 @@ class ChessBoard {
     }
 
     this.root.replaceChildren(frag);
+    this.onRender?.(this.chess);
   }
 
   #kingSquare(color) {

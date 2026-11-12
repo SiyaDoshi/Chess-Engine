@@ -799,6 +799,39 @@ body.view
   margin-right: 0.25rem;
 }
 
+.card-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+/* Move list */
+.moves-card .muted { font-size: 0.88rem; }
+.move-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  font-variant-numeric: tabular-nums;
+}
+.move-list li {
+  display: grid;
+  grid-template-columns: 2.4rem 1fr 1fr;
+  padding: 0.2rem 0.3rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+.move-list li:nth-child(odd) { background: var(--panel-2); }
+.move-num { color: var(--muted); }
+.move-san.latest {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .play-controls {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
