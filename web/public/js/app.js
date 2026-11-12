@@ -6,6 +6,7 @@ import { Chess } from '/lib/chess.js';
 import { EngineClient } from '/js/engine/client.js';
 import { DEFAULT_LEVEL } from '/js/engine/levels.js';
 import { MATE } from '/js/engine/search.js';
+import { playMoveSound, setSoundEnabled } from '/js/sound.js';
 
 const TIME_PRESETS = {
   '1+0': { baseMs: 60_000, incrementMs: 0 },
@@ -130,8 +131,19 @@ const board = new ChessBoard(boardEl, {
     }
     renderMoveList(chess ?? game);
     renderCaptured(game);
+    if (game === chess) soundForNewMove(game);
   },
 });
+
+// Sound for each new move in the live game (not when undoing or reviewing)
+let soundedPly = 0;
+function soundForNewMove(game) {
+  const history = game.history({ verbose: true });
+  if (history.length === soundedPly + 1) {
+    playMoveSound(history[history.length - 1], { gameOver: game.isGameOver() });
+  }
+  soundedPly = history.length;
+}
 
 /*
  * Move review: Left/Right arrows (or clicking a move) step through the
@@ -178,6 +190,15 @@ document.body.dataset.theme = themeSelect.value || 'classic';
 themeSelect.addEventListener('change', () => {
   document.body.dataset.theme = themeSelect.value;
   localStorage.setItem('chess-theme', themeSelect.value);
+});
+
+// Sound on/off
+const soundToggle = document.getElementById('sound-toggle');
+soundToggle.checked = localStorage.getItem('chess-sound') !== 'off';
+setSoundEnabled(soundToggle.checked);
+soundToggle.addEventListener('change', () => {
+  setSoundEnabled(soundToggle.checked);
+  localStorage.setItem('chess-sound', soundToggle.checked ? 'on' : 'off');
 });
 
 // Piece set (Kosal by default)

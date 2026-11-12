@@ -632,6 +632,12 @@ body.view
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
 }
 
+.nav-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
 .settings-menu .nav-field {
   justify-content: space-between;
   margin: 0;
