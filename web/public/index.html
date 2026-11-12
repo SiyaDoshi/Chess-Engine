@@ -174,6 +174,16 @@
           </div>
           <div class="board-wrap">
             <div id="board" class="board" aria-label="Chess board"></div>
+            <div id="game-over" class="game-over" hidden>
+              <div class="game-over-card" role="dialog" aria-labelledby="game-over-title">
+                <p id="game-over-title" class="game-over-title">Checkmate</p>
+                <p id="game-over-detail" class="game-over-detail"></p>
+                <div class="game-over-actions">
+                  <button type="button" id="btn-play-again" class="primary-btn">Play again</button>
+                  <button type="button" id="btn-view-board">View board</button>
+                </div>
+              </div>
+            </div>
             <div id="promotion" class="promotion" hidden>
               <div class="promotion-box" role="dialog" aria-label="Choose a piece to promote to">
                 <p class="promotion-title">Promote to</p>

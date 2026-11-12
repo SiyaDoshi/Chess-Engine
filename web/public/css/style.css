@@ -470,6 +470,7 @@ body.view
 
 .menu-actions button,
 .play-controls button,
+.game-over-actions button,
 .primary-btn,
 .nav-btn {
   appearance: none;
@@ -567,6 +568,7 @@ body.view
 }
 
 .play-controls button:hover,
+.game-over-actions button:not(.primary-btn):hover,
 .nav-btn:hover {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
@@ -832,6 +834,56 @@ body:not([data-bg="light"]) .captured img {
   overflow: hidden;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
   background: var(--dark-sq);
+}
+
+/* Game-over card over the board */
+.game-over {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 16, 13, 0.5);
+  animation: fade-in 0.35s ease-out both;
+}
+.game-over-card {
+  min-width: min(300px, 80%);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.4rem 1.5rem 1.2rem;
+  text-align: center;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.5);
+  animation: pop-in 0.35s ease-out both;
+}
+.game-over-title {
+  margin: 0;
+  font-family: var(--font-brand);
+  font-size: 1.9rem;
+  font-weight: 700;
+}
+.game-over-detail {
+  margin: 0.35rem 0 1.1rem;
+  color: var(--muted);
+}
+.game-over-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+.game-over-actions button {
+  padding: 0.6rem 1.1rem;
+  font-size: 0.95rem;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to { opacity: 1; transform: none; }
 }
 
 /* Promotion picker over the board */

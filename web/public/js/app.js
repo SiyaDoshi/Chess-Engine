@@ -46,6 +46,10 @@ const levelField = document.getElementById('level-field');
 const settingsBtn = document.getElementById('btn-settings');
 const engineCard = document.getElementById('engine-card');
 const moveListEl = document.getElementById('move-list');
+const gameOverEl = document.getElementById('game-over');
+const gameOverTitleEl = document.getElementById('game-over-title');
+const gameOverDetailEl = document.getElementById('game-over-detail');
+const playAgainBtn = document.getElementById('btn-play-again');
 const promotionEl = document.getElementById('promotion');
 const promotionChoicesEl = promotionEl.querySelector('.promotion-choices');
 const capturedByWhiteEl = document.getElementById('captured-by-white');
@@ -187,6 +191,10 @@ document.querySelectorAll('[data-mode]').forEach((btn) => {
 btnHome.addEventListener('click', goHome);
 btnUndo.addEventListener('click', undoLocal);
 btnReset.addEventListener('click', resetLocal);
+playAgainBtn.addEventListener('click', resetLocal);
+document.getElementById('btn-view-board').addEventListener('click', () => {
+  gameOverEl.hidden = true;
+});
 btnCopy.addEventListener('click', copyShareLink);
 
 const pathMatch = window.location.pathname.match(/^\/g\/([a-z0-9]+)$/i);
@@ -276,6 +284,7 @@ function settleLocalClocks(now = Date.now()) {
     statusEl.textContent = timedOut === 'w' ? 'Black wins on time' : 'White wins on time';
     clockWhiteEl.classList.toggle('flagged', timedOut === 'w');
     clockBlackEl.classList.toggle('flagged', timedOut === 'b');
+    showResult(timedOut === 'w' ? 'b' : 'w', 'time');
   }
 }
 
@@ -407,6 +416,53 @@ function renderCaptured(game) {
   fill(capturedByBlackEl, 'w', -material);
 }
 
+let resultShown = false;
+
+/**
+ * Game-over card over the board. winner is 'w', 'b' or null for a draw;
+ * reason is 'checkmate', 'time', or a draw reason.
+ */
+function showResult(winner, reason) {
+  if (resultShown) return;
+  resultShown = true;
+
+  const titles = {
+    checkmate: 'Checkmate',
+    time: "Time's up",
+    stalemate: 'Stalemate',
+    repetition: 'Draw by repetition',
+    material: 'Draw: not enough material',
+    fifty: 'Draw: 50-move rule',
+    draw: 'Draw',
+  };
+  gameOverTitleEl.textContent = titles[reason] || 'Game over';
+
+  const moves = chess ? Math.ceil(chess.history().length / 2) : 0;
+  const inMoves = moves ? ` in ${moves} move${moves === 1 ? '' : 's'}` : '';
+  const name = (c) => (c === 'w' ? 'White' : 'Black');
+  let detail;
+  if (!winner) detail = 'Nobody wins this one.';
+  else if (mode === 'local-ai') detail = winner === 'w' ? `You beat the engine${inMoves}.` : `The engine wins${inMoves}.`;
+  else if (mode === 'online') detail = winner === myColor ? `You win${inMoves}.` : `${name(winner)} wins${inMoves}.`;
+  else detail = `${name(winner)} wins${inMoves}.`;
+  gameOverDetailEl.textContent = detail;
+
+  playAgainBtn.hidden = mode === 'online';
+  gameOverEl.hidden = false;
+}
+
+function hideResult() {
+  resultShown = false;
+  gameOverEl.hidden = true;
+}
+
+function drawReason(game) {
+  if (game.isStalemate()) return 'stalemate';
+  if (game.isThreefoldRepetition()) return 'repetition';
+  if (game.isInsufficientMaterial()) return 'material';
+  return 'fifty';
+}
+
 /** Engine score (centipawns, White's view) as "+0.4", "-1.2" or "M3". */
 function formatScore(score) {
   if (Math.abs(score) > MATE - 1000) {
@@ -476,6 +532,7 @@ function cancelEngine() {
 
 function goHome() {
   cancelEngine();
+  hideResult();
   if (socket) {
     socket.disconnect();
     socket = null;
@@ -524,6 +581,7 @@ function stopHomePreview() {
 
 function startLocal(selectedMode) {
   mode = selectedMode;
+  hideResult();
   showEngineInfo(null);
   chess = new Chess();
   myColor = 'w';
@@ -558,6 +616,7 @@ function undoLocal() {
   // If the engine is still thinking, only the player's last move needs undoing.
   const engineWasThinking = aiThinking;
   cancelEngine();
+  hideResult();
 
   const undone = chess.undo();
   if (!undone) return;
@@ -581,6 +640,7 @@ function undoLocal() {
 function resetLocal() {
   if (mode !== 'local-pvp' && mode !== 'local-ai') return;
   cancelEngine();
+  hideResult();
   showEngineInfo(null);
   chess.reset();
   aiThinking = false;
@@ -596,6 +656,7 @@ function updateStatus() {
     statusEl.textContent = timedOut === 'w' ? 'Black wins on time' : 'White wins on time';
     board.setInteractive(false);
     gameOver = true;
+    showResult(timedOut === 'w' ? 'b' : 'w', 'time');
     return;
   }
   if (chess.isCheckmate()) {
@@ -603,6 +664,7 @@ function updateStatus() {
     board.setInteractive(false);
     clocksRunning = false;
     gameOver = true;
+    showResult(chess.turn() === 'w' ? 'b' : 'w', 'checkmate');
     return;
   }
   if (chess.isDraw()) {
@@ -610,6 +672,7 @@ function updateStatus() {
     board.setInteractive(false);
     clocksRunning = false;
     gameOver = true;
+    showResult(null, drawReason(chess));
     return;
   }
 
@@ -883,6 +946,7 @@ function applyOnlineState(state) {
     gameOver = true;
     statusEl.textContent = state.timedOut === 'w' ? 'Black wins on time' : 'White wins on time';
     board.setInteractive(false);
+    showResult(state.timedOut === 'w' ? 'b' : 'w', 'time');
     return;
   }
 
@@ -890,10 +954,12 @@ function applyOnlineState(state) {
     gameOver = true;
     statusEl.textContent = state.turn === 'w' ? 'Black wins by checkmate' : 'White wins by checkmate';
     board.setInteractive(false);
+    showResult(state.turn === 'w' ? 'b' : 'w', 'checkmate');
   } else if (state.isDraw || (state.isGameOver && !state.timedOut)) {
     gameOver = true;
     statusEl.textContent = 'Draw';
     board.setInteractive(false);
+    showResult(null, chess ? drawReason(chess) : 'draw');
   } else {
     gameOver = false;
     const side = state.turn === 'w' ? 'White' : 'Black';
