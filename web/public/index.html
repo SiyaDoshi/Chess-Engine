@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chess</title>
+  <title>Gambit</title>
   <link rel="stylesheet" href="/css/style.css" />
   <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -13,13 +13,14 @@
     <div class="home-ambient" aria-hidden="true"></div>
 
     <header class="home-brand">
-      <img
-        class="home-title"
-        src="/assets/chess-title.png"
-        alt="CHESS"
-        width="559"
-        height="447"
-      />
+      <h1 class="logo" aria-label="Gambit">
+        <span class="logo-text" aria-hidden="true">Gamb</span>
+        <span class="logo-i" aria-hidden="true">
+          <img class="logo-pawn" src="/assets/logo/pawn.svg" alt="" />
+          <img class="logo-knight" src="/assets/logo/knight.svg" alt="" />
+        </span>
+        <span class="logo-text" aria-hidden="true">t</span>
+      </h1>
     </header>
 
     <div class="home-row">
@@ -38,7 +39,7 @@
             <path d="M3 8l3.5 3L9 5l3 6 3-6 2.5 6L21 8v11H3V8z"/>
           </svg>
         </div>
-        <h1>Get started</h1>
+        <h2>Get started</h2>
         <p class="sub">Choose your game mode</p>
         <div class="menu-actions">
           <button type="button" data-mode="local-pvp">

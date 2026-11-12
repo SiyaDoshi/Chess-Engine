@@ -161,27 +161,101 @@ body.view
 
   flex-shrink: 0;
 
-  margin: -18px 0 0;
+  margin: 0 0 clamp(1rem, 3vh, 2rem);
 
   z-index: 2;
 }
 .home-brand::before {
     content: none;
 }
-.home-title {
-  display: block;
-
-  width: auto;
-  max-width: min(850px, 80vw);
-  max-height: min(260px, 30vh);
-
-  height: auto;
-  object-fit: contain;
-
-  filter: var(--title-filter);
-
+/*
+ * Logo: "Gambit" where the i is a pawn. On load a knight jumps in on an
+ * L-shaped path, knocks the pawn over and becomes the i (a gambit is a
+ * pawn sacrifice). Plays once; reduced-motion users see the final logo.
+ */
+.logo {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  margin: 0;
+  font-family: var(--font-brand);
+  font-weight: 700;
+  font-size: clamp(52px, 6.5vw, 88px);
+  line-height: 1;
+  letter-spacing: -0.035em;
+  color: var(--text);
   user-select: none;
-  pointer-events: none;
+}
+
+.logo-text {
+  display: inline-block;
+  animation: logo-rise 0.5s ease-out both;
+}
+.logo-text:last-child { animation-delay: 0.12s; }
+
+.logo-i {
+  position: relative;
+  display: inline-block;
+  width: 0.6em;
+  height: 0.74em;
+  margin: 0 0.035em 0.13em 0.05em; /* bottom margin puts it on the baseline */
+}
+
+.logo-i img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom center;
+  transform-origin: 50% 100%;
+}
+
+.logo-pawn {
+  animation:
+    logo-rise 0.5s ease-out 0.06s both,
+    logo-pawn-falls 0.45s ease-in 1.12s forwards;
+}
+
+.logo-knight {
+  opacity: 0;
+  animation:
+    logo-knight-jumps 0.6s cubic-bezier(0.3, 0, 0.5, 1) 0.6s forwards,
+    logo-knight-lands 0.25s ease-out 1.2s;
+}
+
+@keyframes logo-rise {
+  from { opacity: 0; transform: translateY(0.12em); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Up, across, then down onto the pawn: a knight's L */
+@keyframes logo-knight-jumps {
+  0% { opacity: 0; transform: translate(1.3em, -0.15em) scale(0.85); }
+  15% { opacity: 1; transform: translate(1.3em, -0.15em) scale(0.85); }
+  45% { opacity: 1; transform: translate(1.15em, -1.05em) scale(0.9); }
+  75% { opacity: 1; transform: translate(0.2em, -0.95em) scale(0.95); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes logo-knight-lands {
+  0% { transform: none; }
+  40% { transform: translateY(0.05em) scaleY(0.94); }
+  100% { transform: none; }
+}
+
+@keyframes logo-pawn-falls {
+  0% { opacity: 1; transform: none; }
+  60% { opacity: 1; transform: translate(-0.2em, 0.02em) rotate(-75deg); }
+  100% { opacity: 0; transform: translate(-0.55em, 0.3em) rotate(-95deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-text,
+  .logo-pawn,
+  .logo-knight { animation: none; }
+  .logo-pawn { opacity: 0; }
+  .logo-knight { opacity: 1; }
 }
 
 .home-row {
@@ -193,7 +267,6 @@ body.view
   flex-wrap: nowrap;
   width: 100%;
   min-height: 0;
-  transform: translateY(-18px);
 }
 
 /* Board shell: stronger soft illumination / halo */
@@ -203,7 +276,6 @@ body.view
   flex: 0 1 auto;
   padding: 0.75rem 1rem 1rem;
   max-width: 100%;
-  transform: translateY(-10px);
 }
 .home-board-shell::before {
   content: "";
@@ -233,7 +305,7 @@ body.view
     Largest board that still fits one screen:
     leave room for logo (~12vh) + gaps + shell padding
   */
-  width: min(550px, 46vw, calc(100vh - 12rem));
+  width: min(550px, 46vw, calc(100vh - 14rem));
   aspect-ratio: 1 / 1;
   border-radius: 16px;
   overflow: hidden;
@@ -362,7 +434,7 @@ body.view
     0 18px 40px rgba(28, 20, 12, 0.34);
 }
 
-.mode-card h1 {
+.mode-card h2 {
   margin: 0 0 0.4rem;
   font-size: 2.2rem;
   font-weight: 750;
@@ -1030,10 +1102,7 @@ body:not([data-bg="light"]) .captured img {
     margin-bottom: 0.4rem;
   }
 
-  .home-title {
-    max-width: min(220px, 48vw);
-    max-height: min(88px, 12vh);
-  }
+  .logo { font-size: clamp(44px, 12vw, 72px); }
 
   .home-row {
     flex-direction: column;
