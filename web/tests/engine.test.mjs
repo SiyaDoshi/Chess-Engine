@@ -4,6 +4,7 @@ import { Chess } from 'chess.js';
 import * as board from '../public/js/engine/board.js';
 import { evaluate } from '../public/js/engine/evaluate.js';
 import { search, MATE } from '../public/js/engine/search.js';
+import { LEVELS, chooseMove } from '../public/js/engine/levels.js';
 
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const KIWIPETE = 'r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1';
@@ -106,4 +107,23 @@ test('search: finds a mate in 2', () => {
   const chess = new Chess('k7/8/2K5/8/8/8/8/7R w - - 0 1');
   const r = search(chess, { depth: 4 });
   assert.equal(r.score, MATE - 3); // mate on the 3rd half-move
+});
+
+test('levels: harder levels look further ahead', () => {
+  assert.ok(LEVELS.easy.depth < LEVELS.medium.depth);
+  assert.ok(LEVELS.medium.depth < LEVELS.hard.depth);
+});
+
+test('levels: easy sometimes plays a random legal move', () => {
+  const chess = new Chess(START);
+  const r = chooseMove(chess, 'easy', () => 0); // force the random branch
+  assert.equal(r.random, true);
+  assert.ok(chess.moves({ verbose: true }).some((m) => m.from === r.move.from && m.to === r.move.to));
+});
+
+test('levels: medium never plays randomly and finds the mate', () => {
+  const chess = new Chess('6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1');
+  const r = chooseMove(chess, 'medium', () => 0);
+  assert.equal(r.random, false);
+  assert.deepEqual(r.move, { from: 'a1', to: 'a8' });
 });
