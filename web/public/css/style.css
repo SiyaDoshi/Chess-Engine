@@ -674,6 +674,57 @@ body:not([data-bg="light"]) .captured img {
   background: var(--dark-sq);
 }
 
+/* Promotion picker over the board */
+.board-wrap { position: relative; }
+.promotion {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 16, 13, 0.55);
+}
+.promotion-box {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.9rem 1rem 1rem;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+.promotion-title {
+  margin: 0 0 0.6rem;
+  font-weight: 650;
+}
+.promotion-choices {
+  display: flex;
+  gap: 0.5rem;
+}
+.promotion-choice {
+  width: clamp(56px, 9vmin, 80px);
+  aspect-ratio: 1;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--light-sq);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.promotion-choice:hover,
+.promotion-choice:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.promotion-choice img {
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+}
+
 .board {
   width: 100%;
   height: 100%;

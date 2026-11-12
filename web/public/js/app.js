@@ -46,6 +46,8 @@ const levelField = document.getElementById('level-field');
 const settingsBtn = document.getElementById('btn-settings');
 const engineCard = document.getElementById('engine-card');
 const moveListEl = document.getElementById('move-list');
+const promotionEl = document.getElementById('promotion');
+const promotionChoicesEl = promotionEl.querySelector('.promotion-choices');
 const capturedByWhiteEl = document.getElementById('captured-by-white');
 const capturedByBlackEl = document.getElementById('captured-by-black');
 const moveListEmptyEl = document.getElementById('move-list-empty');
@@ -622,11 +624,63 @@ function updateStatus() {
   statusEl.textContent = chess.isCheck() ? `${side} to move (check)` : `${side} to move`;
 }
 
+/** True if moving from -> to is a pawn reaching the last rank. */
+function isPromotion(from, to) {
+  return chess.moves({ square: from, verbose: true }).some((m) => m.to === to && m.promotion);
+}
+
+/**
+ * Ask which piece to promote to. Resolves with 'q', 'r', 'b' or 'n', or
+ * null if the player cancels (Escape or clicking outside the box).
+ */
+function choosePromotion(color) {
+  return new Promise((resolve) => {
+    const finish = (piece) => {
+      promotionEl.hidden = true;
+      promotionEl.onclick = null;
+      document.removeEventListener('keydown', onKey);
+      resolve(piece);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') finish(null);
+    };
+    const buttons = ['q', 'r', 'b', 'n'].map((type) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'promotion-choice';
+      btn.setAttribute('aria-label', { q: 'Queen', r: 'Rook', b: 'Bishop', n: 'Knight' }[type]);
+      const img = document.createElement('img');
+      img.src = window.pieceUrl(color + type.toUpperCase());
+      img.alt = '';
+      btn.appendChild(img);
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        finish(type);
+      });
+      return btn;
+    });
+    promotionChoicesEl.replaceChildren(...buttons);
+    promotionEl.onclick = () => finish(null);
+    document.addEventListener('keydown', onKey);
+    promotionEl.hidden = false;
+    buttons[0].focus();
+  });
+}
+
 async function handleBoardMove({ from, to }) {
   showError(gameError, null);
   if (gameOver) {
     board.render();
     return;
+  }
+
+  let promotion;
+  if (isPromotion(from, to)) {
+    promotion = await choosePromotion(chess.turn());
+    if (!promotion) {
+      board.render();
+      return;
+    }
   }
 
   if (mode === 'local-pvp' || mode === 'local-ai') {
@@ -637,7 +691,7 @@ async function handleBoardMove({ from, to }) {
     }
 
     pushClockSnapshot();
-    const move = chess.move({ from, to, promotion: 'q' });
+    const move = chess.move({ from, to, promotion });
     if (!move) {
       clockHistory.pop();
       board.render();
@@ -669,7 +723,7 @@ async function handleBoardMove({ from, to }) {
       board.render();
       return;
     }
-    socket.emit('makeMove', { from, to, promotion: 'q' }, (res) => {
+    socket.emit('makeMove', { from, to, promotion }, (res) => {
       if (!res.ok) {
         showError(gameError, res.error);
         if (res.state) applyOnlineState(res.state);
