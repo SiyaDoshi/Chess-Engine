@@ -3,6 +3,8 @@
  */
 
 import { Chess } from '/lib/chess.js';
+import { EngineClient } from '/js/engine/client.js';
+import { DEFAULT_LEVEL } from '/js/engine/levels.js';
 
 const TIME_PRESETS = {
   '1+0': { baseMs: 60_000, incrementMs: 0 },
@@ -51,6 +53,10 @@ let myColor = null;
 let socket = null;
 let onlineGameId = null;
 let aiThinking = false;
+/** Bumped whenever a pending engine reply should be ignored (undo, reset, home). */
+let aiToken = 0;
+let engineLevel = DEFAULT_LEVEL;
+const engine = new EngineClient();
 let gameOver = false;
 
 let whiteMs = TIME_PRESETS['5+0'].baseMs;
@@ -298,7 +304,15 @@ function updateModeUI({ onlineLobby = false, onlinePlaying = false } = {}) {
   }
 }
 
+function cancelEngine() {
+  if (!aiThinking) return;
+  aiToken++;
+  engine.cancel();
+  aiThinking = false;
+}
+
 function goHome() {
+  cancelEngine();
   if (socket) {
     socket.disconnect();
     socket = null;
@@ -377,11 +391,15 @@ function undoLocal() {
   if (mode !== 'local-pvp' && mode !== 'local-ai') return;
   if (!chess) return;
 
+  // If the engine is still thinking, only the player's last move needs undoing.
+  const engineWasThinking = aiThinking;
+  cancelEngine();
+
   const undone = chess.undo();
   if (!undone) return;
   restoreClockSnapshot();
 
-  if (mode === 'local-ai') {
+  if (mode === 'local-ai' && !engineWasThinking) {
     if (chess.undo()) restoreClockSnapshot();
   }
 
@@ -398,6 +416,7 @@ function undoLocal() {
 
 function resetLocal() {
   if (mode !== 'local-pvp' && mode !== 'local-ai') return;
+  cancelEngine();
   chess.reset();
   aiThinking = false;
   board.setGame(chess);
@@ -501,37 +520,43 @@ async function handleBoardMove({ from, to }) {
   }
 }
 
-function runAiTurn() {
+const MIN_ENGINE_DELAY_MS = 350; // instant replies feel jarring
+
+async function runAiTurn() {
   aiThinking = true;
+  const token = ++aiToken;
   board.setInteractive(false);
-  statusEl.textContent = 'Waiting…';
+  statusEl.textContent = 'Engine is thinking…';
   lastTickAt = Date.now();
   renderClocks();
 
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      if (timedOut || chess.isGameOver()) {
-        aiThinking = false;
-        updateStatus();
-        resolve();
-        return;
-      }
-      const move = findAiMove(chess);
-      if (move) {
-        pushClockSnapshot();
-        chess.move(move);
-        if (move.color === 'b') blackMs += incrementMs;
-        else whiteMs += incrementMs;
-      }
-      lastTickAt = Date.now();
-      aiThinking = false;
-      board.setGame(chess);
-      updateStatus();
-      renderClocks();
-      if (!chess.isGameOver() && !timedOut) board.setInteractive(true);
-      resolve();
-    }, 350);
-  });
+  const startedAt = Date.now();
+  let result;
+  try {
+    result = await engine.think(chess.fen(), engineLevel);
+  } catch {
+    return; // cancelled by undo, reset or leaving the game
+  }
+  const wait = MIN_ENGINE_DELAY_MS - (Date.now() - startedAt);
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  if (token !== aiToken || mode !== 'local-ai') return;
+
+  aiThinking = false;
+  if (timedOut || chess.isGameOver()) {
+    updateStatus();
+    return;
+  }
+  if (result.move) {
+    pushClockSnapshot();
+    const move = chess.move(result.move);
+    if (move.color === 'b') blackMs += incrementMs;
+    else whiteMs += incrementMs;
+  }
+  lastTickAt = Date.now();
+  board.setGame(chess);
+  updateStatus();
+  renderClocks();
+  if (!chess.isGameOver() && !timedOut) board.setInteractive(true);
 }
 
 function ensureSocket() {
