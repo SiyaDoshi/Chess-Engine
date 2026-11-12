@@ -600,6 +600,19 @@ function drawReason(game) {
   return 'fifty';
 }
 
+/** Bring the local copy of an online game up to date, keeping its move history. */
+function syncOnlineGame(state) {
+  if (state.pgn !== undefined) {
+    try {
+      chess.loadPgn(state.pgn);
+      if (chess.fen() === state.fen) return;
+    } catch {
+      // fall through to the position-only update
+    }
+  }
+  chess.load(state.fen);
+}
+
 /** Engine score (centipawns, White's view) as "+0.4", "-1.2" or "M3". */
 function formatScore(score) {
   if (Math.abs(score) > MATE - 1000) {
@@ -986,7 +999,7 @@ async function handleBoardMove({ from, to }) {
         else board.setGame(chess);
         return;
       }
-      chess.load(res.state.fen);
+      syncOnlineGame(res.state);
       board.setGame(chess);
       applyOnlineState(res.state);
     });
@@ -1042,7 +1055,7 @@ function ensureSocket() {
   socket = io();
   socket.on('moveMade', ({ state }) => {
     if (!chess) chess = new Chess();
-    chess.load(state.fen);
+    syncOnlineGame(state);
     board.setGame(chess);
     applyOnlineState(state);
   });
@@ -1123,7 +1136,7 @@ function applyOnlineState(state) {
   if (!state) return;
 
   if (state.fen && chess && chess.fen() !== state.fen) {
-    chess.load(state.fen);
+    syncOnlineGame(state);
     board.setGame(chess);
   }
 

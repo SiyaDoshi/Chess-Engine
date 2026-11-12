@@ -109,6 +109,7 @@ function publicState(game, gameId) {
   return {
     gameId,
     fen: game.chess.fen(),
+    pgn: game.chess.pgn(), // full move history, so clients can show the move list
     turn: game.chess.turn(),
     whiteConnected: !!game.whiteId,
     blackConnected: !!game.blackId,
