@@ -38,6 +38,7 @@ const btnCopy = document.getElementById('btn-copy');
 const btnHome = document.getElementById('btn-home');
 const themeSelect = document.getElementById('theme-select');
 const bgSelect = document.getElementById('bg-select');
+const pieceSelect = document.getElementById('piece-select');
 const timerSelect = document.getElementById('timer-select');
 const timerField = document.getElementById('timer-field');
 const levelField = document.getElementById('level-field');
@@ -91,6 +92,16 @@ document.body.dataset.theme = 'classic';
 themeSelect.addEventListener('change', () => {
   document.body.dataset.theme = themeSelect.value;
   localStorage.setItem('chess-theme', themeSelect.value);
+});
+
+// Piece set (Kosal by default)
+const savedPieces = localStorage.getItem('chess-pieces') || 'kosal';
+pieceSelect.value = savedPieces;
+window.setPieceSet(savedPieces);
+pieceSelect.addEventListener('change', () => {
+  window.setPieceSet(pieceSelect.value);
+  localStorage.setItem('chess-pieces', pieceSelect.value);
+  board.render();
 });
 
 // Background theme (gameplay)
