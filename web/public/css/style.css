@@ -261,7 +261,7 @@ body.view
 .home-row {
   display: flex;
   flex-direction: row;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   gap: clamp(3rem, 6vw, 6.5rem);
   flex-wrap: nowrap;
@@ -399,7 +399,7 @@ body.view
   border: 1px solid var(--border);
   border-radius: 22px;
   padding: clamp(1.35rem, 2.2vh, 2.2rem) clamp(1.25rem, 2vw, 2rem);
-  text-align: center;
+  text-align: left;
   color: var(--text);
   flex: 0 0 auto;
   box-shadow:
@@ -419,14 +419,6 @@ body.view
   background: linear-gradient(90deg, transparent, rgba(255, 230, 190, 0.75), transparent);
 }
 
-.mode-card-crown {
-  display: flex;
-  justify-content: center;
-  color: var(--accent);
-  margin-bottom: 0.45rem;
-  filter: drop-shadow(0 1px 2px rgba(80, 50, 20, 0.25));
-}
-
 .mode-card:hover {
   transform: translateY(-2px);
   box-shadow:
@@ -435,8 +427,8 @@ body.view
 }
 
 .mode-card h2 {
-  margin: 0 0 0.4rem;
-  font-size: 2.2rem;
+  margin: 0 0 0.3rem;
+  font-size: 2rem;
   font-weight: 750;
   letter-spacing: -0.02em;
   color: var(--text);
@@ -490,8 +482,59 @@ body.view
   
 }
 .menu-actions button .mode-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
+}
+
+/* Main call to action: play the engine */
+.menu-actions .mode-primary {
+  justify-content: flex-start;
+  gap: 0.9rem;
+  padding: 0.9rem 1.1rem;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  text-align: left;
+}
+.menu-actions .mode-primary:hover {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+.mode-primary .mode-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.85);
+  align-items: center;
+  justify-content: center;
+}
+.mode-primary .mode-icon img {
+  width: 30px;
+  height: 30px;
+}
+.mode-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.mode-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.mode-desc {
+  font-size: 0.85rem;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.mode-secondary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+.mode-secondary button {
+  padding: 0.75rem 0.5rem;
+  font-size: 0.95rem;
 }
 
 .menu-actions button:hover {
