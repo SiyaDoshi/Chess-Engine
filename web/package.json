@@ -1,7 +1,7 @@
 {
-  "name": "chess-online",
+  "name": "gambit",
   "version": "1.0.0",
-  "description": "Online chess — local PvP, vs AI, and share-link multiplayer",
+  "description": "Gambit: a chess engine written from scratch, with single player, two player and online play",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
