@@ -39,6 +39,8 @@ const themeSelect = document.getElementById('theme-select');
 const bgSelect = document.getElementById('bg-select');
 const timerSelect = document.getElementById('timer-select');
 const timerField = document.getElementById('timer-field');
+const levelField = document.getElementById('level-field');
+const levelSelect = document.getElementById('level-select');
 const timeWhiteEl = document.getElementById('time-white');
 const timeBlackEl = document.getElementById('time-black');
 const clockWhiteEl = document.getElementById('clock-white');
@@ -95,6 +97,12 @@ document.body.dataset.bg = savedBg;
 bgSelect.addEventListener('change', () => {
   document.body.dataset.bg = bgSelect.value;
   localStorage.setItem('chess-bg', bgSelect.value);
+});
+
+levelSelect.value = engineLevel;
+levelSelect.addEventListener('change', () => {
+  // Takes effect from the engine's next move.
+  engineLevel = levelSelect.value;
 });
 
 timerSelect.addEventListener('change', () => {
@@ -293,6 +301,7 @@ function updateModeUI({ onlineLobby = false, onlinePlaying = false } = {}) {
   lobbyPanel.hidden = !(mode === 'online' && onlineLobby);
   roomBadge.hidden = !(mode === 'online' && onlinePlaying);
   timerField.hidden = false;
+  levelField.hidden = !single;
 
   clocksEl.classList.toggle('single-clock', single);
   clockWhiteEl.querySelector('.clock-label').textContent = single ? 'You' : 'White';
