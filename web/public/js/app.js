@@ -406,6 +406,11 @@ function renderClocks() {
   clockBlackEl.classList.toggle('active', running && turn === 'b' && !gameOver);
   clockWhiteEl.classList.toggle('flagged', timedOut === 'w');
   clockBlackEl.classList.toggle('flagged', timedOut === 'b');
+
+  // Pulsing dots next to the engine's name while it searches
+  const thinkingSide = mode === 'local-ai' && aiThinking ? (myColor === 'w' ? 'b' : 'w') : null;
+  clockWhiteEl.querySelector('.thinking').hidden = thinkingSide !== 'w';
+  clockBlackEl.querySelector('.thinking').hidden = thinkingSide !== 'b';
 }
 
 function startClockLoop() {
