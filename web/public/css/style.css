@@ -723,6 +723,55 @@ body.view
 .status-card .muted:empty,
 .status-card .error:empty { display: none; }
 
+/* Engine card: evaluation, search stats and best line */
+.engine-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+.engine-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.engine-eval {
+  font-size: 1.35rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+.engine-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin: 0 0 0.6rem;
+}
+.engine-stats div {
+  background: var(--panel-2);
+  border-radius: 8px;
+  padding: 0.4rem 0.5rem;
+}
+.engine-stats dt {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.engine-stats dd {
+  margin: 0.1rem 0 0;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.engine-line {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+.engine-line-label {
+  color: var(--muted);
+  margin-right: 0.25rem;
+}
+
 .play-controls {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));

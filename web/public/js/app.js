@@ -5,6 +5,7 @@
 import { Chess } from '/lib/chess.js';
 import { EngineClient } from '/js/engine/client.js';
 import { DEFAULT_LEVEL } from '/js/engine/levels.js';
+import { MATE } from '/js/engine/search.js';
 
 const TIME_PRESETS = {
   '1+0': { baseMs: 60_000, incrementMs: 0 },
@@ -43,6 +44,12 @@ const timerSelect = document.getElementById('timer-select');
 const timerField = document.getElementById('timer-field');
 const levelField = document.getElementById('level-field');
 const settingsBtn = document.getElementById('btn-settings');
+const engineCard = document.getElementById('engine-card');
+const engineEvalEl = document.getElementById('engine-eval');
+const engineDepthEl = document.getElementById('engine-depth');
+const engineNodesEl = document.getElementById('engine-nodes');
+const engineTimeEl = document.getElementById('engine-time');
+const engineLineEl = document.getElementById('engine-line');
 const settingsMenu = document.getElementById('settings-menu');
 const levelSelect = document.getElementById('level-select');
 const timeWhiteEl = document.getElementById('time-white');
@@ -335,6 +342,7 @@ function updateModeUI({ onlineLobby = false, onlinePlaying = false } = {}) {
   roomBadge.hidden = !(mode === 'online' && onlinePlaying);
   timerField.hidden = false;
   levelField.hidden = !single;
+  engineCard.hidden = !single;
 
   clocksEl.classList.toggle('single-clock', single);
   clockWhiteEl.querySelector('.clock-label').textContent = single ? 'You' : 'White';
@@ -345,6 +353,47 @@ function updateModeUI({ onlineLobby = false, onlinePlaying = false } = {}) {
   } else {
     timerSelect.disabled = false;
   }
+}
+
+/** Engine score (centipawns, White's view) as "+0.4", "-1.2" or "M3". */
+function formatScore(score) {
+  if (Math.abs(score) > MATE - 1000) {
+    const movesToMate = Math.ceil((MATE - Math.abs(score)) / 2);
+    return `${score > 0 ? '' : '-'}M${movesToMate}`;
+  }
+  const pawns = score / 100;
+  return `${pawns > 0 ? '+' : ''}${pawns.toFixed(1)}`;
+}
+
+/** Show what the engine found: evaluation, depth, work done and its plan. */
+function showEngineInfo(result, fenBefore) {
+  if (!result) {
+    engineEvalEl.textContent = '0.0';
+    engineDepthEl.textContent = '–';
+    engineNodesEl.textContent = '–';
+    engineTimeEl.textContent = '–';
+    engineLineEl.textContent = '–';
+    return;
+  }
+  engineEvalEl.textContent = formatScore(result.score);
+  engineDepthEl.textContent = String(result.depth);
+  engineNodesEl.textContent = result.nodes.toLocaleString('en-US');
+  engineTimeEl.textContent = `${(result.timeMs / 1000).toFixed(2)}s`;
+
+  if (result.random) {
+    engineLineEl.textContent = 'Played a random move (Easy)';
+    return;
+  }
+  const replay = new Chess(fenBefore);
+  const san = [];
+  for (const move of result.line) {
+    try {
+      san.push(replay.move(move).san);
+    } catch {
+      break;
+    }
+  }
+  engineLineEl.textContent = san.join(' ') || '–';
 }
 
 /** Flip the board and keep the player at the bottom, the opponent on top. */
@@ -410,6 +459,7 @@ function stopHomePreview() {
 
 function startLocal(selectedMode) {
   mode = selectedMode;
+  showEngineInfo(null);
   chess = new Chess();
   myColor = 'w';
   gameOver = false;
@@ -466,6 +516,7 @@ function undoLocal() {
 function resetLocal() {
   if (mode !== 'local-pvp' && mode !== 'local-ai') return;
   cancelEngine();
+  showEngineInfo(null);
   chess.reset();
   aiThinking = false;
   board.setGame(chess);
@@ -580,9 +631,10 @@ async function runAiTurn() {
   renderClocks();
 
   const startedAt = Date.now();
+  const fenBefore = chess.fen();
   let result;
   try {
-    result = await engine.think(chess.fen(), engineLevel);
+    result = await engine.think(fenBefore, engineLevel);
   } catch {
     return; // cancelled by undo, reset or leaving the game
   }
@@ -595,6 +647,7 @@ async function runAiTurn() {
     updateStatus();
     return;
   }
+  showEngineInfo(result, fenBefore);
   if (result.move) {
     pushClockSnapshot();
     const move = chess.move(result.move);

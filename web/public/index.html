@@ -163,6 +163,19 @@
           <p id="game-error" class="error" hidden></p>
         </div>
 
+        <div id="engine-card" class="panel-card engine-card" hidden>
+          <div class="engine-head">
+            <span class="engine-title">Engine</span>
+            <span id="engine-eval" class="engine-eval">0.0</span>
+          </div>
+          <dl class="engine-stats">
+            <div><dt>Depth</dt><dd id="engine-depth">–</dd></div>
+            <div><dt>Positions</dt><dd id="engine-nodes">–</dd></div>
+            <div><dt>Time</dt><dd id="engine-time">–</dd></div>
+          </dl>
+          <p class="engine-line"><span class="engine-line-label">Best line</span> <span id="engine-line">–</span></p>
+        </div>
+
         <div id="play-controls" class="play-controls" hidden>
           <button type="button" id="btn-undo">Undo</button>
           <button type="button" id="btn-reset">Reset</button>
