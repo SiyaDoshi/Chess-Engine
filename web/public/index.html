@@ -120,42 +120,47 @@
     </header>
 
     <div class="game-body">
-      <div class="board-column">
-        <div class="clocks" id="clocks">
-          <div class="clock" id="clock-black" data-side="b">
-            <span class="clock-label">Black</span>
-            <span class="clock-time" id="time-black">5:00</span>
-          </div>
-          <div class="clock" id="clock-white" data-side="w">
-            <span class="clock-label">White</span>
-            <span class="clock-time" id="time-white">5:00</span>
+      <div class="board-area">
+        <div class="player-bar" id="clock-black" data-side="b">
+          <span class="player-name clock-label">Black</span>
+          <span class="clock-time" id="time-black">5:00</span>
+        </div>
+
+        <div class="board-row">
+          <div class="board-wrap">
+            <div id="board" class="board" aria-label="Chess board"></div>
           </div>
         </div>
 
-        <div class="board-wrap">
-          <div id="board" class="board" aria-label="Chess board"></div>
+        <div class="player-bar" id="clock-white" data-side="w">
+          <span class="player-name clock-label">White</span>
+          <span class="clock-time" id="time-white">5:00</span>
         </div>
+      </div>
 
-        <p id="status" class="status">Your turn</p>
-        <p id="you-are" class="muted"></p>
-        <p id="game-error" class="error" hidden></p>
+      <aside class="side-panel">
+        <div class="panel-card status-card">
+          <p id="status" class="status">Your turn</p>
+          <p id="you-are" class="muted"></p>
+          <p id="game-error" class="error" hidden></p>
+        </div>
 
         <div id="play-controls" class="play-controls" hidden>
           <button type="button" id="btn-undo">Undo</button>
           <button type="button" id="btn-reset">Reset</button>
         </div>
-      </div>
 
-      <aside id="lobby-panel" class="lobby-panel" hidden>
-        <h3>Invite a friend</h3>
-        <p class="share-label">Share this link:</p>
-        <code id="share-link"></code>
-        <button type="button" id="btn-copy" class="primary-btn">Copy link</button>
-        <p class="room-code-line">Room code: <strong id="room-code"></strong></p>
-        <p id="wait-msg" class="muted">Waiting for opponent…</p>
+        <div id="lobby-panel" class="panel-card lobby-panel" hidden>
+          <h3>Invite a friend</h3>
+          <p class="share-label">Share this link:</p>
+          <code id="share-link"></code>
+          <button type="button" id="btn-copy" class="primary-btn">Copy link</button>
+          <p class="room-code-line">Room code: <strong id="room-code"></strong></p>
+          <p id="wait-msg" class="muted">Waiting for opponent…</p>
+        </div>
+
+        <p id="room-badge" class="room-badge" hidden>Online Match</p>
       </aside>
-
-      <p id="room-badge" class="room-badge" hidden>Online Match</p>
     </div>
   </section>
 

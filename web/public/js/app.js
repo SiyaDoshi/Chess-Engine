@@ -30,7 +30,8 @@ const youAreEl = document.getElementById('you-are');
 const menuError = document.getElementById('menu-error');
 const gameError = document.getElementById('game-error');
 const playControls = document.getElementById('play-controls');
-const clocksEl = document.getElementById('clocks');
+const clocksEl = document.getElementById('game');
+const boardAreaEl = document.querySelector('.board-area');
 const btnUndo = document.getElementById('btn-undo');
 const btnReset = document.getElementById('btn-reset');
 const btnCopy = document.getElementById('btn-copy');
@@ -305,12 +306,19 @@ function updateModeUI({ onlineLobby = false, onlinePlaying = false } = {}) {
 
   clocksEl.classList.toggle('single-clock', single);
   clockWhiteEl.querySelector('.clock-label').textContent = single ? 'You' : 'White';
+  clockBlackEl.querySelector('.clock-label').textContent = single ? 'Engine' : 'Black';
 
   if (mode === 'online') {
     timerSelect.disabled = !(myColor === 'w' && onlineLobby);
   } else {
     timerSelect.disabled = false;
   }
+}
+
+/** Flip the board and keep the player at the bottom, the opponent on top. */
+function setBoardOrientation(color) {
+  board.setOrientation(color);
+  boardAreaEl.classList.toggle('flipped', color === 'b');
 }
 
 function cancelEngine() {
@@ -376,7 +384,7 @@ function startLocal(selectedMode) {
   timedOut = null;
   aiThinking = false;
   board.setGame(chess);
-  board.setOrientation('w');
+  setBoardOrientation('w');
   board.setInteractive(true);
   modeLabelEl.textContent = selectedMode === 'local-ai' ? 'Single Player' : 'Two Player';
   youAreEl.textContent = '';
@@ -618,7 +626,7 @@ function enterOnline(gameId, color, state) {
   timedOut = state.timedOut || null;
   chess = new Chess(state.fen);
   board.setGame(chess);
-  board.setOrientation(color === 'b' ? 'b' : 'w');
+  setBoardOrientation(color === 'b' ? 'b' : 'w');
   modeLabelEl.textContent = 'Online';
 
   if (state.timeControl) timerSelect.value = state.timeControl;
