@@ -14,6 +14,8 @@
  * so table[0] is a8 and table[63] is h1. Black uses the mirrored square.
  */
 
+import { rawBoard } from './board.js';
+
 export const PIECE_VALUES = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 0 };
 
 // prettier-ignore
@@ -103,42 +105,46 @@ const KING_ENDGAME = [
 const PST = { p: PAWN, n: KNIGHT, b: BISHOP, r: ROOK, q: QUEEN };
 
 /**
- * Endgame = no queens, or each side with a queen has at most one minor piece.
+ * Endgame = no queens, or each side with a queen has no other big pieces
+ * (no rooks and at most one minor piece).
  */
 function isEndgame(board) {
-  const count = { w: { q: 0, minor: 0, r: 0 }, b: { q: 0, minor: 0, r: 0 } };
-  for (const row of board) {
-    for (const sq of row) {
-      if (!sq) continue;
-      if (sq.type === 'q') count[sq.color].q++;
-      else if (sq.type === 'r') count[sq.color].r++;
-      else if (sq.type === 'n' || sq.type === 'b') count[sq.color].minor++;
-    }
+  const count = { w: { q: 0, r: 0, minor: 0 }, b: { q: 0, r: 0, minor: 0 } };
+  for (let sq = 0; sq < 128; sq++) {
+    if (sq & 0x88) continue;
+    const p = board[sq];
+    if (!p) continue;
+    if (p.type === 'q') count[p.color].q++;
+    else if (p.type === 'r') count[p.color].r++;
+    else if (p.type === 'n' || p.type === 'b') count[p.color].minor++;
   }
-  const sideIsLight = (c) => c.q === 0 || (c.r === 0 && c.minor <= 1);
-  return sideIsLight(count.w) && sideIsLight(count.b);
+  const light = (c) => c.q === 0 || (c.r === 0 && c.minor <= 1);
+  return light(count.w) && light(count.b);
 }
 
 /**
- * Evaluate a chess.js position. Returns centipawns from White's view.
+ * Evaluate a position. Returns centipawns from White's point of view.
  * @param {import('chess.js').Chess} chess
  */
 export function evaluate(chess) {
-  const board = chess.board();
+  const board = rawBoard(chess);
   const endgame = isEndgame(board);
   let score = 0;
 
-  for (let r = 0; r < 8; r++) {
-    for (let c = 0; c < 8; c++) {
-      const sq = board[r][c];
-      if (!sq) continue;
-      // White reads the table directly; Black reads it upside-down.
-      const idx = sq.color === 'w' ? r * 8 + c : (7 - r) * 8 + c;
-      const table =
-        sq.type === 'k' ? (endgame ? KING_ENDGAME : KING_MIDDLEGAME) : PST[sq.type];
-      const value = PIECE_VALUES[sq.type] + table[idx];
-      score += sq.color === 'w' ? value : -value;
+  for (let sq = 0; sq < 128; sq++) {
+    if (sq & 0x88) {
+      sq += 7; // skip the 8 off-board slots at the end of each rank
+      continue;
     }
+    const p = board[sq];
+    if (!p) continue;
+    const rank = sq >> 4; // 0 = 8th rank
+    const file = sq & 7;
+    // White reads the table directly; Black reads it upside-down.
+    const idx = p.color === 'w' ? rank * 8 + file : (7 - rank) * 8 + file;
+    const table = p.type === 'k' ? (endgame ? KING_ENDGAME : KING_MIDDLEGAME) : PST[p.type];
+    const value = PIECE_VALUES[p.type] + table[idx];
+    score += p.color === 'w' ? value : -value;
   }
   return score;
 }
