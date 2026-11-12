@@ -91,7 +91,7 @@ themeSelect.addEventListener('change', () => {
 });
 
 // Background theme (gameplay)
-const savedBg = localStorage.getItem('chess-bg') || 'light';
+const savedBg = localStorage.getItem('chess-bg') || 'dark';
 bgSelect.value = savedBg;
 document.body.dataset.bg = savedBg;
 bgSelect.addEventListener('change', () => {
