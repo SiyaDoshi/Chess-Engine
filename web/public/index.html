@@ -227,6 +227,18 @@
           <p id="game-error" class="error" hidden></p>
         </div>
 
+        <div id="lobby-panel" class="panel-card lobby-panel" hidden>
+          <h3 class="card-title">Invite a friend</h3>
+          <p class="share-label">Share this link:</p>
+          <code id="share-link"></code>
+          <button type="button" id="btn-copy" class="primary-btn">Copy link</button>
+          <p class="room-code-line">Room code: <strong id="room-code"></strong></p>
+          <p id="wait-msg" class="wait-msg">
+            <span class="thinking" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span id="wait-text">Waiting for your friend to join</span>
+          </p>
+        </div>
+
         <div id="engine-card" class="panel-card engine-card" hidden>
           <div class="engine-head">
             <span class="engine-title">Engine</span>
@@ -254,14 +266,6 @@
           <button type="button" id="btn-hint" hidden>Hint</button>
         </div>
 
-        <div id="lobby-panel" class="panel-card lobby-panel" hidden>
-          <h3>Invite a friend</h3>
-          <p class="share-label">Share this link:</p>
-          <code id="share-link"></code>
-          <button type="button" id="btn-copy" class="primary-btn">Copy link</button>
-          <p class="room-code-line">Room code: <strong id="room-code"></strong></p>
-          <p id="wait-msg" class="muted">Waiting for opponent…</p>
-        </div>
 
         <p id="room-badge" class="room-badge" hidden>Online Match</p>
       </aside>

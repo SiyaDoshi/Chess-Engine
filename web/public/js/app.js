@@ -28,6 +28,7 @@ const roomBadge = document.getElementById('room-badge');
 const shareLinkEl = document.getElementById('share-link');
 const roomCodeEl = document.getElementById('room-code');
 const waitMsg = document.getElementById('wait-msg');
+const waitText = document.getElementById('wait-text');
 const youAreEl = document.getElementById('you-are');
 const menuError = document.getElementById('menu-error');
 const gameError = document.getElementById('game-error');
@@ -1115,7 +1116,7 @@ function enterOnline(gameId, color, state) {
   else if (color === 'b') youAreEl.textContent = 'You are Black';
   else youAreEl.textContent = 'Spectating';
 
-  waitMsg.textContent = 'Waiting for opponent…';
+  waitText.textContent = 'Waiting for your friend to join';
   playControls.hidden = true;
   applyOnlineState(state);
   showGame();
@@ -1146,9 +1147,9 @@ function applyOnlineState(state) {
   updateModeUI({ onlineLobby: !both, onlinePlaying: both });
 
   if (!both) {
-    waitMsg.textContent = !state.blackConnected
-      ? 'Waiting for opponent…'
-      : 'Waiting for White to reconnect…';
+    waitText.textContent = !state.blackConnected
+      ? 'Waiting for your friend to join'
+      : 'Waiting for White to reconnect';
   }
 
   if (state.timedOut) {

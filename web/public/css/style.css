@@ -1194,9 +1194,9 @@ body:not([data-bg="light"]) .captured img {
   gap: 0.55rem;
 }
 
-.lobby-panel h3 {
+.lobby-panel h3.card-title {
   margin: 0 0 0.2rem;
-  font-size: 1.05rem;
+  font-size: 0.8rem;
 }
 
 .share-label {
@@ -1213,6 +1213,23 @@ body:not([data-bg="light"]) .captured img {
   border: 1px solid var(--border);
   padding: 0.55rem 0.7rem;
   border-radius: 8px;
+}
+
+.wait-msg {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+.wait-msg[hidden] { display: none; }
+
+#room-code {
+  font-family: var(--font-brand);
+  font-size: 1.15rem;
+  letter-spacing: 0.08em;
+  color: var(--accent);
 }
 
 .room-code-line {
