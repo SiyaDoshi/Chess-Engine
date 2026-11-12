@@ -417,7 +417,7 @@ class ChessBoard {
       document.body.appendChild(d.ghost);
       d.img.classList.add('drag-source');
     }
-    d.ghost.style.transform = `translate(${ev.clientX - d.size / 2}px, ${ev.clientY - d.size / 2}px)`;
+    d.ghost.style.transform = `translate(${ev.clientX - d.size / 2}px, ${ev.clientY - d.size / 2}px) scale(1.12)`;
   }
 
   #onDragEnd(ev) {

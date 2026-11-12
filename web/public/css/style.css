@@ -810,6 +810,9 @@ body:not([data-bg="light"]) .captured img {
   z-index: 1000;
   pointer-events: none;
   object-fit: contain;
+  /* Lifted off the board */
+  filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.45));
+  cursor: grabbing;
 }
 .drag-source { opacity: 0.3; }
 
