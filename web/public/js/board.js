@@ -51,6 +51,13 @@ class ChessBoard {
     this.chess = chess;
     this.selected = null;
     this.legalTargets = [];
+    this.hint = null;
+    this.render();
+  }
+
+  /** Highlight a suggested move until the position changes. */
+  showHint(from, to) {
+    this.hint = { from, to };
     this.render();
   }
 
@@ -297,6 +304,7 @@ class ChessBoard {
 
         if (last && (square === last.from || square === last.to)) el.classList.add('last-move');
         if (square === checkedKing) el.classList.add('in-check');
+        if (this.hint && (square === this.hint.from || square === this.hint.to)) el.classList.add('hint');
         if (this.selected === square) el.classList.add('selected');
         if (this.legalTargets.includes(square)) {
           el.classList.add('legal');

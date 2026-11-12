@@ -221,6 +221,30 @@ colorSelect.addEventListener('change', () => {
   if (mode === 'local-ai') resetLocal(); // switching sides starts a new game
 });
 
+// Hint: a separate engine worker so it never interferes with the engine's own move
+const hintEngine = new EngineClient();
+const hintBtn = document.getElementById('btn-hint');
+hintBtn.addEventListener('click', async () => {
+  if (mode !== 'local-ai' || gameOver || aiThinking || reviewPly !== null) return;
+  if (chess.turn() !== myColor) return;
+  const fen = chess.fen();
+  hintBtn.disabled = true;
+  hintBtn.textContent = 'Thinking…';
+  try {
+    const result = await hintEngine.think(fen, 'hard', 1200);
+    if (result.move && chess.fen() === fen) {
+      board.showHint(result.move.from, result.move.to);
+      const san = new Chess(fen).move(result.move).san;
+      statusEl.textContent = `Hint: ${san}`;
+    }
+  } catch {
+    // ignore: the game moved on
+  } finally {
+    hintBtn.disabled = false;
+    hintBtn.textContent = 'Hint';
+  }
+});
+
 document.getElementById('btn-flip').addEventListener('click', () => {
   setBoardOrientation(board.orientation === 'w' ? 'b' : 'w');
 });
@@ -410,6 +434,7 @@ function updateModeUI({ onlineLobby = false, onlinePlaying = false } = {}) {
   clockWhiteEl.querySelector('.clock-label').textContent = label('w', 'White');
   clockBlackEl.querySelector('.clock-label').textContent = label('b', 'Black');
   colorField.hidden = !single;
+  hintBtn.hidden = !single;
 
   if (mode === 'online') {
     timerSelect.disabled = !(myColor === 'w' && onlineLobby);
