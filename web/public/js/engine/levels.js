@@ -10,7 +10,7 @@ import { search } from './search.js';
 
 export const LEVELS = {
   easy: { label: 'Easy', depth: 1, timeMs: 300, randomMoveChance: 0.3 },
-  medium: { label: 'Medium', depth: 3, timeMs: 1000, randomMoveChance: 0 },
+  medium: { label: 'Medium', depth: 4, timeMs: 1000, randomMoveChance: 0 },
   hard: { label: 'Hard', depth: 12, timeMs: 2500, randomMoveChance: 0 },
 };
 
