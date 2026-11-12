@@ -45,6 +45,7 @@ const timerField = document.getElementById('timer-field');
 const levelField = document.getElementById('level-field');
 const settingsBtn = document.getElementById('btn-settings');
 const engineCard = document.getElementById('engine-card');
+const evalBarEl = document.getElementById('eval-bar');
 const engineEvalEl = document.getElementById('engine-eval');
 const engineDepthEl = document.getElementById('engine-depth');
 const engineNodesEl = document.getElementById('engine-nodes');
@@ -343,6 +344,7 @@ function updateModeUI({ onlineLobby = false, onlinePlaying = false } = {}) {
   timerField.hidden = false;
   levelField.hidden = !single;
   engineCard.hidden = !single;
+  evalBarEl.hidden = !single;
 
   clocksEl.classList.toggle('single-clock', single);
   clockWhiteEl.querySelector('.clock-label').textContent = single ? 'You' : 'White';
@@ -365,8 +367,21 @@ function formatScore(score) {
   return `${pawns > 0 ? '+' : ''}${pawns.toFixed(1)}`;
 }
 
+/**
+ * Eval bar: White's share of the bar. Squashed with a logistic curve so a
+ * pawn or two is clearly visible but the bar only fills up for big leads.
+ */
+function setEvalBar(score) {
+  let white;
+  if (Math.abs(score) > MATE - 1000) white = score > 0 ? 100 : 0;
+  else white = 100 / (1 + Math.exp(-score / 250));
+  evalBarEl.style.setProperty('--white', `${white.toFixed(1)}%`);
+  evalBarEl.setAttribute('aria-label', `Evaluation ${formatScore(score)}`);
+}
+
 /** Show what the engine found: evaluation, depth, work done and its plan. */
 function showEngineInfo(result, fenBefore) {
+  setEvalBar(result ? result.score : 0);
   if (!result) {
     engineEvalEl.textContent = '0.0';
     engineDepthEl.textContent = '–';

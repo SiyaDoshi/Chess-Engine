@@ -565,6 +565,33 @@ body.view
   gap: 0.5rem;
 }
 
+/* Eval bar: white share grows from the bottom (from the top when flipped) */
+.eval-bar {
+  --white: 50%;
+  flex: 0 0 14px;
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #3a3532;
+  border: 1px solid var(--border);
+}
+.eval-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--white);
+  background: #f3ead8;
+  transition: height 0.5s ease;
+}
+.board-area.flipped .eval-fill {
+  top: 0;
+  bottom: auto;
+}
+.board-area:has(.eval-bar:not([hidden])) .board-wrap {
+  width: calc(100% - 14px - 0.5rem);
+}
+
 .player-bar {
   display: flex;
   align-items: center;
