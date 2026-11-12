@@ -31,6 +31,11 @@ export function undoMove(chess) {
   chess._undoMove();
 }
 
+/** Number of moves played so far (used to unwind an interrupted search). */
+export function historyLength(chess) {
+  return chess._history.length;
+}
+
 export function sideToMove(chess) {
   return chess._turn; // 'w' or 'b'
 }

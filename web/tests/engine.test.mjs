@@ -85,3 +85,25 @@ test('quiescence: does not grab a defended pawn with the queen', () => {
   const r = search(new Chess(fen), { depth: 1 });
   assert.notDeepEqual(r.move, { from: 'f3', to: 'f7' });
 });
+
+test('iterative deepening: stops at the time limit and keeps a legal answer', () => {
+  const chess = new Chess(KIWIPETE);
+  const r = search(chess, { depth: 20, timeMs: 300 });
+  assert.ok(r.timeMs < 1000, `took ${r.timeMs}ms`);
+  assert.ok(r.depth >= 2);
+  assert.ok(chess.moves({ verbose: true }).some((m) => m.from === r.move.from && m.to === r.move.to));
+  assert.equal(chess.fen(), KIWIPETE);
+});
+
+test('iterative deepening: reports the best line, starting with the best move', () => {
+  const r = search(new Chess(START), { depth: 3 });
+  assert.equal(r.line.length, 3);
+  assert.deepEqual(r.line[0], r.move);
+});
+
+test('search: finds a mate in 2', () => {
+  // King and rook vs king: e.g. 1. Kb6 Kb8 2. Rh8#. No mate in 1 exists.
+  const chess = new Chess('k7/8/2K5/8/8/8/8/7R w - - 0 1');
+  const r = search(chess, { depth: 4 });
+  assert.equal(r.score, MATE - 3); // mate on the 3rd half-move
+});
