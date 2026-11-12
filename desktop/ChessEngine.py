@@ -118,6 +118,18 @@ class GameState():
                 elif move.startCol == 7:
                     self.currentCastlingRight.bks = False
 
+        # A rook captured on its starting square can no longer castle.
+        if move.pieceCaptured == 'wR' and move.endRow == 7:
+            if move.endCol == 0:
+                self.currentCastlingRight.wqs = False
+            elif move.endCol == 7:
+                self.currentCastlingRight.wks = False
+        elif move.pieceCaptured == 'bR' and move.endRow == 0:
+            if move.endCol == 0:
+                self.currentCastlingRight.bqs = False
+            elif move.endCol == 7:
+                self.currentCastlingRight.bks = False
+
     def getValidMoves(self):
         tempEnpassantPossible = self.enpassantPossible
         tempCastleRights = CastleRights(self.currentCastlingRight.wks, self.currentCastlingRight.bks,
