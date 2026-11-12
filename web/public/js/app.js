@@ -634,6 +634,10 @@ function setEvalBar(score) {
   else white = 100 / (1 + Math.exp(-score / 250));
   evalBarEl.style.setProperty('--white', `${white.toFixed(1)}%`);
   evalBarEl.setAttribute('aria-label', `Evaluation ${formatScore(score)}`);
+  // The number sits at the end of whoever is ahead, like on chess sites
+  const label = evalBarEl.querySelector('.eval-label');
+  label.textContent = formatScore(score).replace('+', '').replace('-', '');
+  evalBarEl.classList.toggle('black-ahead', score < 0);
 }
 
 /** Show what the engine found: evaluation, depth, work done and its plan. */

@@ -680,8 +680,10 @@ body.view
 }
 
 /* Board plus a player bar above and below it */
-.board-area {
+.game-body {
   --board-size: min(calc(100vh - 15.5rem), calc(100vw - 25rem), 760px);
+}
+.board-area {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -704,13 +706,33 @@ body.view
 /* Eval bar: white share grows from the bottom (from the top when flipped) */
 .eval-bar {
   --white: 50%;
-  flex: 0 0 14px;
+  flex: 0 0 26px;
   position: relative;
-  border-radius: 6px;
+  border-radius: 3px;
   overflow: hidden;
-  background: #3a3532;
-  border: 1px solid var(--border);
+  background: #403a36;
 }
+/* Score printed on the bar, at the end of the side that's ahead */
+.eval-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  z-index: 1;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: #2c241b;
+}
+.eval-bar.black-ahead .eval-label {
+  bottom: auto;
+  top: 4px;
+  color: #f3ead8;
+}
+.board-area.flipped .eval-label { bottom: auto; top: 4px; }
+.board-area.flipped .eval-bar.black-ahead .eval-label { top: auto; bottom: 4px; }
 .eval-fill {
   position: absolute;
   left: 0;
@@ -725,7 +747,7 @@ body.view
   bottom: auto;
 }
 .board-area:has(.eval-bar:not([hidden])) .board-wrap {
-  width: calc(100% - 14px - 0.5rem);
+  width: calc(100% - 26px - 0.5rem);
 }
 
 .player-bar {
@@ -1055,12 +1077,26 @@ body:not([data-bg="light"]) .captured img {
   animation: none !important;
 }
 
-/* Right-hand panel */
+/* Right-hand panel: never taller than the board column, so the page
+   never scrolls; the move list scrolls inside its card instead. */
 .side-panel {
   flex: 0 0 300px;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  max-height: calc(var(--board-size) + 6rem);
+}
+.side-panel > * { flex-shrink: 0; }
+.side-panel > .moves-card {
+  flex: 0 1 auto;
+  min-height: 7rem;
+  display: flex;
+  flex-direction: column;
+}
+.moves-card .move-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
 }
 
 .panel-card {
@@ -1317,15 +1353,16 @@ body:not([data-bg="light"]) .captured img {
     align-items: center;
   }
 
-  .board-area {
+  .game-body {
     --board-size: min(calc(100vw - 2rem), 640px);
   }
 
   .side-panel {
     flex: 0 0 auto;
-    width: var(--board-size, 100%);
     width: min(calc(100vw - 2rem), 640px);
+    max-height: none;
   }
+  .moves-card .move-list { max-height: 220px; }
 }
 
 @media (max-width: 640px) {
