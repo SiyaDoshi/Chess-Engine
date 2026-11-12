@@ -295,6 +295,10 @@ class ChessBoard {
           if (piece) el.classList.add('capture');
         }
 
+        // Coordinates on the edge squares, like a real board
+        if (c === cols[0]) el.appendChild(this.#coord('rank', square[1]));
+        if (r === rows[7]) el.appendChild(this.#coord('file', square[0]));
+
         if (piece) {
           const key = piece.color + piece.type.toUpperCase();
           const img = document.createElement('img');
@@ -309,6 +313,14 @@ class ChessBoard {
     }
 
     this.root.replaceChildren(frag);
+  }
+
+  #coord(kind, text) {
+    const span = document.createElement('span');
+    span.className = `coord coord-${kind}`;
+    span.textContent = text;
+    span.setAttribute('aria-hidden', 'true');
+    return span;
   }
 
   #coordsToSquare(r, c) {

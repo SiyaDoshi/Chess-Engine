@@ -671,6 +671,21 @@ body.view
   display: block;
 }
 
+/* Coordinates: drawn in the opposite square color */
+.coord {
+  position: absolute;
+  font-size: clamp(9px, 1.5vmin, 13px);
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+  z-index: 2;
+}
+.coord-rank { top: 4%; left: 5%; }
+.coord-file { bottom: 4%; right: 6%; }
+.square.light .coord { color: var(--dark-sq); }
+.square.dark .coord { color: var(--light-sq); }
+.preview-board .coord { display: none; }
+
 /* Gameplay board pieces must NOT float */
 #board.board .square img {
   animation: none !important;
