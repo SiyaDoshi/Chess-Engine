@@ -1,0 +1,13 @@
+{
+  "name": "Chess Engine",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+  "postCreateCommand": "cd web && npm install",
+  "postAttachCommand": "cd web && npm start",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "Chess app",
+      "onAutoForward": "openBrowser"
+    }
+  }
+}
