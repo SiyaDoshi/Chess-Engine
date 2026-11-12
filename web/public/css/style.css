@@ -1179,7 +1179,7 @@ body:not([data-bg="light"]) .captured img {
 
 .play-controls {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(62px, 1fr));
   gap: 0.5rem;
 }
 
@@ -1329,14 +1329,27 @@ body:not([data-bg="light"]) .captured img {
 }
 
 @media (max-width: 640px) {
-  /* Keep the top bar on one line: Home, difficulty, timer, settings */
+  /* Two rows: Home and settings on top, the game options underneath */
   .top-nav {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 0.5rem;
     padding: 0.5rem 0.6rem;
   }
   .top-nav .mode-pill { display: none; }
+  .top-nav > .nav-btn { order: 0; }
+  .top-nav > .settings { order: 1; margin-left: auto; }
+  .top-nav::before {
+    /* line break between the two rows */
+    content: "";
+    order: 2;
+    flex-basis: 100%;
+    height: 0;
+  }
+  .top-nav > .nav-field {
+    order: 3;
+    flex: 1 1 0;
+    margin-left: 0;
+  }
   .top-nav > .nav-field > span { display: none; }
-  .top-nav > .nav-field { margin-left: 0; }
-  .top-nav > .nav-btn { margin-right: auto; }
+  .top-nav > .nav-field select { width: 100%; }
 }
