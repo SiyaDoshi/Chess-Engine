@@ -13,6 +13,7 @@
   --accent-soft: rgba(192, 138, 91, 0.22);
   --on-accent: #1f1b18;
   --select: rgba(246, 246, 105, 0.5);
+  --last-move: rgba(246, 222, 105, 0.42);
   --legal: rgba(0, 0, 0, 0.22);
   --error: #f87171;
   --clock-active: var(--accent);
@@ -643,7 +644,14 @@ body.view
 .square.light { background: var(--light-sq); }
 .square.dark { background: var(--dark-sq); }
 
-.square.selected { box-shadow: inset 0 0 0 4px var(--select); }
+.square.last-move { background-image: linear-gradient(var(--last-move), var(--last-move)); }
+.square.selected { background-image: linear-gradient(var(--select), var(--select)); }
+
+/* King in check: soft red glow from the centre */
+.square.in-check {
+  background-image: radial-gradient(circle, rgba(239, 68, 68, 0.95) 0%, rgba(220, 38, 38, 0.55) 40%, transparent 72%);
+}
+.preview-board .square.last-move { background-image: none; }
 
 .square.legal::after {
   content: "";

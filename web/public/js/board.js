@@ -270,6 +270,9 @@ class ChessBoard {
   render() {
     if (!this.chess) return;
     const matrix = this.chess.board();
+    const history = this.chess.history({ verbose: true });
+    const last = history[history.length - 1];
+    const checkedKing = this.chess.inCheck() ? this.#kingSquare(this.chess.turn()) : null;
     const frag = document.createDocumentFragment();
     this.root.classList.toggle('flipped', this.orientation === 'b');
 
@@ -289,6 +292,8 @@ class ChessBoard {
         el.className = `square ${(r + c) % 2 === 0 ? 'light' : 'dark'}`;
         el.dataset.square = square;
 
+        if (last && (square === last.from || square === last.to)) el.classList.add('last-move');
+        if (square === checkedKing) el.classList.add('in-check');
         if (this.selected === square) el.classList.add('selected');
         if (this.legalTargets.includes(square)) {
           el.classList.add('legal');
@@ -313,6 +318,15 @@ class ChessBoard {
     }
 
     this.root.replaceChildren(frag);
+  }
+
+  #kingSquare(color) {
+    for (const row of this.chess.board()) {
+      for (const p of row) {
+        if (p && p.type === 'k' && p.color === color) return p.square;
+      }
+    }
+    return null;
   }
 
   #coord(kind, text) {
