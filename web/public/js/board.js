@@ -289,6 +289,12 @@ class ChessBoard {
     const history = this.chess.history({ verbose: true });
     const last = history[history.length - 1];
     const checkedKing = this.chess.inCheck() ? this.#kingSquare(this.chess.turn()) : null;
+    const mated = this.chess.isCheckmate();
+
+    // Exactly one new move since the last render? Then animate it.
+    const ply = history.length;
+    const isNewMove = this.#renderedPly !== null && ply === this.#renderedPly + 1;
+    this.#renderedPly = ply;
     const frag = document.createDocumentFragment();
     this.root.classList.toggle('flipped', this.orientation === 'b');
 
@@ -313,7 +319,11 @@ class ChessBoard {
           : `${square}, empty`);
 
         if (last && (square === last.from || square === last.to)) el.classList.add('last-move');
-        if (square === checkedKing) el.classList.add('in-check');
+        if (square === checkedKing) {
+          el.classList.add('in-check');
+          if (isNewMove) el.classList.add('check-pulse');
+          if (mated) el.classList.add(isNewMove ? 'king-falls' : 'king-down');
+        }
         if (this.hint && (square === this.hint.from || square === this.hint.to)) el.classList.add('hint');
         if (this.selected === square) el.classList.add('selected');
         if (this.legalTargets.includes(square)) {
@@ -340,10 +350,6 @@ class ChessBoard {
 
     this.root.replaceChildren(frag);
 
-    // Slide the piece when exactly one new move appeared since last render.
-    const ply = history.length;
-    const isNewMove = this.#renderedPly !== null && ply === this.#renderedPly + 1;
-    this.#renderedPly = ply;
     if (isNewMove && last && !this.#skipSlide) this.#slide(last.from, last.to);
     this.#skipSlide = false;
 

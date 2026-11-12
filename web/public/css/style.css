@@ -865,7 +865,7 @@ body:not([data-bg="light"]) .captured img {
   align-items: center;
   justify-content: center;
   background: rgba(20, 16, 13, 0.5);
-  animation: fade-in 0.35s ease-out both;
+  animation: fade-in 0.35s ease-out 0.7s both; /* after the king falls */
 }
 .game-over-card {
   min-width: min(300px, 80%);
@@ -875,7 +875,7 @@ body:not([data-bg="light"]) .captured img {
   padding: 1.4rem 1.5rem 1.2rem;
   text-align: center;
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.5);
-  animation: pop-in 0.35s ease-out both;
+  animation: pop-in 0.35s ease-out 0.7s both;
 }
 .game-over-title {
   margin: 0;
@@ -994,6 +994,26 @@ body:not([data-bg="light"]) .captured img {
 }
 .preview-board .square.last-move { background-image: none; }
 
+/* A new check: the red glow pulses twice */
+.square.check-pulse { animation: check-pulse 0.45s ease-in-out 2; }
+@keyframes check-pulse {
+  50% { filter: brightness(1.25) saturate(1.3); }
+}
+
+/* Checkmate: the losing king tips over (after the mating piece lands) */
+.square.king-falls img,
+.square.king-down img { transform-origin: 50% 88%; }
+.square.king-falls img { animation: king-falls 0.6s cubic-bezier(0.5, 0, 0.75, 0) 0.2s forwards; }
+.square.king-down img { transform: rotate(-82deg) translateY(8%); }
+@keyframes king-falls {
+  to { transform: rotate(-82deg) translateY(8%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .square.check-pulse,
+  .square.king-falls img { animation: none; }
+}
+
 .square.legal::after {
   content: "";
   width: 28%;
@@ -1058,7 +1078,7 @@ body:not([data-bg="light"]) .captured img {
 .drag-source { opacity: 0.3; }
 
 /* Gameplay board pieces must NOT float */
-#board.board .square img {
+#board.board .square:not(.king-falls) img {
   animation: none !important;
 }
 
