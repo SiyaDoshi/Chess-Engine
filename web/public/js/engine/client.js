@@ -2,7 +2,7 @@
  * client.js — the page's handle on the engine worker.
  *
  *   const engine = new EngineClient();
- *   const result = await engine.think(chess.fen(), 'medium');
+ *   const result = await engine.think(chess.fen(), 'medium', 2000);
  *   chess.move(result.move);
  */
 
@@ -29,13 +29,16 @@ export class EngineClient {
     return this.#worker;
   }
 
-  /** Ask the engine for a move. Resolves with the search result. */
-  think(fen, level) {
+  /**
+   * Ask the engine for a move. Resolves with the search result.
+   * maxTimeMs (optional) caps the level's thinking time, e.g. when low on clock.
+   */
+  think(fen, level, maxTimeMs) {
     const id = this.#nextId++;
     const worker = this.#ensureWorker();
     return new Promise((resolve, reject) => {
       this.#pending.set(id, { resolve, reject });
-      worker.postMessage({ id, fen, level });
+      worker.postMessage({ id, fen, level, maxTimeMs });
     });
   }
 

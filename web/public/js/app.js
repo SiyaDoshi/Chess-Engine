@@ -247,26 +247,7 @@ function settleLocalClocks(now = Date.now()) {
   if (!clocksRunning || timedOut || !lastTickAt || !chess) return;
   if (chess.isGameOver()) return;
 
-  // Single Player: only human (White) clock; pause while waiting for reply
-  if (mode === 'local-ai') {
-    if (aiThinking || chess.turn() !== 'w') {
-      lastTickAt = now;
-      return;
-    }
-    const elapsed = Math.max(0, now - lastTickAt);
-    whiteMs = Math.max(0, whiteMs - elapsed);
-    lastTickAt = now;
-    if (whiteMs <= 0) {
-      timedOut = 'w';
-      clocksRunning = false;
-      gameOver = true;
-      board.setInteractive(false);
-      statusEl.textContent = 'Black wins on time';
-      clockWhiteEl.classList.add('flagged');
-    }
-    return;
-  }
-
+  // Both sides' clocks run, including the engine's while it thinks.
   const elapsed = Math.max(0, now - lastTickAt);
   const turn = chess.turn();
   if (turn === 'w') {
@@ -314,17 +295,10 @@ function renderClocks() {
   timeWhiteEl.textContent = formatTime(w);
   timeBlackEl.textContent = formatTime(b);
 
-  if (mode === 'local-ai') {
-    clockWhiteEl.classList.toggle('active', running && turn === 'w' && !aiThinking && !gameOver);
-    clockBlackEl.classList.remove('active');
-    clockWhiteEl.classList.toggle('flagged', timedOut === 'w');
-    clockBlackEl.classList.remove('flagged');
-  } else {
-    clockWhiteEl.classList.toggle('active', running && turn === 'w' && !gameOver);
-    clockBlackEl.classList.toggle('active', running && turn === 'b' && !gameOver);
-    clockWhiteEl.classList.toggle('flagged', timedOut === 'w');
-    clockBlackEl.classList.toggle('flagged', timedOut === 'b');
-  }
+  clockWhiteEl.classList.toggle('active', running && turn === 'w' && !gameOver);
+  clockBlackEl.classList.toggle('active', running && turn === 'b' && !gameOver);
+  clockWhiteEl.classList.toggle('flagged', timedOut === 'w');
+  clockBlackEl.classList.toggle('flagged', timedOut === 'b');
 }
 
 function startClockLoop() {
@@ -675,7 +649,9 @@ async function runAiTurn() {
   const fenBefore = chess.fen();
   let result;
   try {
-    result = await engine.think(fenBefore, engineLevel);
+    // Never spend more than ~1/30 of the remaining time on one move.
+    const budgetMs = Math.max(100, Math.floor(blackMs / 30));
+    result = await engine.think(fenBefore, engineLevel, budgetMs);
   } catch {
     return; // cancelled by undo, reset or leaving the game
   }

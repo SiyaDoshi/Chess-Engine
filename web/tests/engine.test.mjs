@@ -116,14 +116,19 @@ test('levels: harder levels look further ahead', () => {
 
 test('levels: easy sometimes plays a random legal move', () => {
   const chess = new Chess(START);
-  const r = chooseMove(chess, 'easy', () => 0); // force the random branch
+  const r = chooseMove(chess, 'easy', { random: () => 0 }); // force the random branch
   assert.equal(r.random, true);
   assert.ok(chess.moves({ verbose: true }).some((m) => m.from === r.move.from && m.to === r.move.to));
 });
 
 test('levels: medium never plays randomly and finds the mate', () => {
   const chess = new Chess('6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1');
-  const r = chooseMove(chess, 'medium', () => 0);
+  const r = chooseMove(chess, 'medium', { random: () => 0 });
   assert.equal(r.random, false);
   assert.deepEqual(r.move, { from: 'a1', to: 'a8' });
+});
+
+test('levels: a time cap shortens the search', () => {
+  const r = chooseMove(new Chess(KIWIPETE), 'hard', { maxTimeMs: 150 });
+  assert.ok(r.timeMs < 600, `took ${r.timeMs}ms`);
 });

@@ -20,11 +20,13 @@ export const DEFAULT_LEVEL = 'medium';
  * Pick the engine's move at a given difficulty.
  * @param {import('chess.js').Chess} chess
  * @param {keyof LEVELS} levelName
- * @param {() => number} [random] injectable for tests
+ * @param {{ maxTimeMs?: number, random?: () => number }} [opts]
+ *   maxTimeMs caps the level's time (e.g. low on clock); random is for tests
  */
-export function chooseMove(chess, levelName, random = Math.random) {
+export function chooseMove(chess, levelName, { maxTimeMs, random = Math.random } = {}) {
   const level = LEVELS[levelName] ?? LEVELS[DEFAULT_LEVEL];
-  const result = search(chess, { depth: level.depth, timeMs: level.timeMs });
+  const timeMs = maxTimeMs ? Math.min(level.timeMs, maxTimeMs) : level.timeMs;
+  const result = search(chess, { depth: level.depth, timeMs });
 
   if (level.randomMoveChance && random() < level.randomMoveChance) {
     const moves = chess.moves({ verbose: true });

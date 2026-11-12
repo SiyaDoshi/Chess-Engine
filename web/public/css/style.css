@@ -633,9 +633,6 @@ body.view
   color: var(--on-accent);
 }
 
-/* Single Player: the engine has no clock yet */
-.game-screen.single-clock #clock-black .clock-time { visibility: hidden; }
-
 .board-wrap {
   width: 100%;
   aspect-ratio: 1 / 1;
