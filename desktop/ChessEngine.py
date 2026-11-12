@@ -36,7 +36,7 @@ class GameState():
             self.blackKingLocation = (move.endRow, move.endCol)
 
         if move.isPawnPromotion:
-            self.board[move.endRow][move.endCol] = move.pieceMoved[0] + 'Q'
+            self.board[move.endRow][move.endCol] = move.pieceMoved[0] + move.promotionChoice
 
         if move.isEnpassantMove:
             self.board[move.startRow][move.endCol] = '--'
@@ -185,45 +185,50 @@ class GameState():
                     self.moveFunctions[piece](r, c, moves)
         return moves
 
+    def addPawnMove(self, startSq, endSq, moves, enpassant=False):
+        """Add a pawn move; a move to the last rank becomes four promotion moves."""
+        move = Move(startSq, endSq, self.board, enpassantPossible=enpassant)
+        if not move.isPawnPromotion:
+            moves.append(move)
+            return
+        for piece in Move.PROMOTION_PIECES:
+            moves.append(Move(startSq, endSq, self.board, promotionChoice=piece))
+
     def getPawnMoves(self, r, c, moves):
         if self.whitetoMove:
             if self.board[r-1][c] == "--":
-                moves.append(Move((r, c), (r-1, c), self.board))
+                self.addPawnMove((r, c), (r-1, c), moves)
                 if r == 6 and self.board[r-2][c] == "--":
-                    moves.append(Move((r, c), (r-2, c), self.board))
+                    self.addPawnMove((r, c), (r-2, c), moves)
             if c - 1 >= 0:
                 if self.board[r-1][c-1][0] == 'b':
-                    moves.append(Move((r, c), (r-1, c-1), self.board))
+                    self.addPawnMove((r, c), (r-1, c-1), moves)
                 elif (r - 1, c - 1) == self.enpassantPossible:
-                    moves.append(
-                        Move((r, c), (r-1, c-1), self.board, enpassantPossible=True))
+                    self.addPawnMove((r, c), (r-1, c-1), moves, enpassant=True)
 
             if c + 1 <= 7:
                 if self.board[r-1][c+1][0] == 'b':
-                    moves.append(Move((r, c), (r-1, c+1), self.board))
+                    self.addPawnMove((r, c), (r-1, c+1), moves)
                 elif (r - 1, c + 1) == self.enpassantPossible:
-                    moves.append(
-                        Move((r, c), (r-1, c+1), self.board, enpassantPossible=True))
+                    self.addPawnMove((r, c), (r-1, c+1), moves, enpassant=True)
 
         else:
             if self.board[r+1][c] == "--":
-                moves.append(Move((r, c), (r+1, c), self.board))
+                self.addPawnMove((r, c), (r+1, c), moves)
                 if r == 1 and self.board[r+2][c] == '--':
-                    moves.append(Move((r, c), (r+2, c), self.board))
+                    self.addPawnMove((r, c), (r+2, c), moves)
 
             if c-1 >= 0:
                 if self.board[r+1][c-1][0] == 'w':
-                    moves.append(Move((r, c), (r+1, c-1), self.board))
+                    self.addPawnMove((r, c), (r+1, c-1), moves)
                 elif (r + 1, c - 1) == self.enpassantPossible:
-                    moves.append(
-                        Move((r, c), (r+1, c-1), self.board, enpassantPossible=True))
+                    self.addPawnMove((r, c), (r+1, c-1), moves, enpassant=True)
 
             if c+1 <= 7:
                 if self.board[r+1][c+1][0] == 'w':
-                    moves.append(Move((r, c), (r+1, c+1), self.board))
+                    self.addPawnMove((r, c), (r+1, c+1), moves)
                 elif (r + 1, c + 1) == self.enpassantPossible:
-                    moves.append(
-                        Move((r, c), (r+1, c+1), self.board, enpassantPossible=True))
+                    self.addPawnMove((r, c), (r+1, c+1), moves, enpassant=True)
 
     def getRookMoves(self, r, c, moves):
         directions = ((-1, 0), (0, -1), (1, 0), (0, 1))
@@ -332,7 +337,9 @@ class Move():
                    "d": 3, "e": 4, "f": 5, "g": 6, "h": 7}
     colsToFiles = {v: k for k, v in filesToCols.items()}
 
-    def __init__(self, startSq, endSq, board, enpassantPossible=False, isCastleMove=False):
+    PROMOTION_PIECES = ('Q', 'R', 'B', 'N')
+
+    def __init__(self, startSq, endSq, board, enpassantPossible=False, isCastleMove=False, promotionChoice='Q'):
         self.startRow = startSq[0]
         self.startCol = startSq[1]
         self.endRow = endSq[0]
@@ -342,6 +349,7 @@ class Move():
 
         self.isPawnPromotion = (self.pieceMoved == 'wp' and self.endRow == 0) or (
             self.pieceMoved == 'bp' and self.endRow == 7)
+        self.promotionChoice = promotionChoice if self.isPawnPromotion else None
 
         self.isEnpassantMove = enpassantPossible
         if self.isEnpassantMove:
@@ -351,6 +359,9 @@ class Move():
 
         self.moveID = self.startRow * 1000 + \
             self.startCol*100 + self.endRow*10 + self.endCol
+        if self.isPawnPromotion:
+            # Each promotion piece is a different move.
+            self.moveID += 10000 * (1 + self.PROMOTION_PIECES.index(promotionChoice))
 
     def __eq__(self, other):
         if isinstance(other, Move):
