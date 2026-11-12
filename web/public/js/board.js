@@ -3,10 +3,26 @@
  * Preview animation / confetti do not affect gameplay boards.
  */
 
-const PIECE_FILES = {
+const PIECE_SETS = {
+  kosal: (key) => `/pieces/kosal/${key}.svg`,
+  classic: (key) => `/pieces/${CLASSIC_FILES[key]}.png`,
+};
+
+const CLASSIC_FILES = {
   wP: 'wp', wR: 'wR', wN: 'wN', wB: 'wB', wQ: 'wQ', wK: 'wK',
   bP: 'bp', bR: 'bR', bN: 'bN', bB: 'bB', bQ: 'bQ', bK: 'bK',
 };
+
+let pieceSet = 'kosal';
+
+/** Switch every board to another piece set ('kosal' or 'classic'). */
+function setPieceSet(name) {
+  if (PIECE_SETS[name]) pieceSet = name;
+}
+
+function pieceUrl(key) {
+  return PIECE_SETS[pieceSet](key);
+}
 
 class ChessBoard {
   #idleTimer = null;
@@ -282,7 +298,7 @@ class ChessBoard {
         if (piece) {
           const key = piece.color + piece.type.toUpperCase();
           const img = document.createElement('img');
-          img.src = `/pieces/${PIECE_FILES[key]}.png`;
+          img.src = pieceUrl(key);
           img.alt = key;
           img.draggable = false;
           el.appendChild(img);
@@ -348,3 +364,4 @@ class ChessBoard {
 }
 
 window.ChessBoard = ChessBoard;
+window.setPieceSet = setPieceSet;
