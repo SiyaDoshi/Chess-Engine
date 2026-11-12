@@ -1,5 +1,21 @@
 /* style.css — homepage and game screen are fully separate */
 
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/inter-latin-wght-normal.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Outfit";
+  src: url("/fonts/outfit-latin-700-normal.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* Shared palette for every page: warm dark by default */
   --bg: #1f1b18;
@@ -18,7 +34,8 @@
   --error: #f87171;
   --clock-active: var(--accent);
   --title-filter: brightness(0) invert(92%) sepia(12%);
-  --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-brand: "Outfit", "Inter", system-ui, sans-serif;
   --light-sq: #f0d9b5;
   --dark-sq: #b58863;
 }
@@ -45,6 +62,12 @@ body[data-theme="gray"] { --light-sq: #e8e8e8; --dark-sq: #7d7d7d; }
 body[data-theme="purple"] { --light-sq: #eae2f5; --dark-sq: #8877b7; }
 
 * { box-sizing: border-box; }
+
+button,
+select,
+input {
+  font-family: inherit;
+}
 
 /*
   CRITICAL: CSS display rules must not override the HTML hidden attribute.
