@@ -361,56 +361,6 @@ body.view
   pointer-events: none;
 }
 
-.preview-flyer {
-  position: absolute;
-  z-index: 4;
-  pointer-events: none;
-  object-fit: contain;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25));
-  will-change: transform;
-}
-
-/* Stronger golden move highlights (homepage preview only) */
-.preview-board .square.preview-glow {
-  box-shadow:
-    inset 0 0 0 3px rgba(245, 200, 70, 0.95),
-    inset 0 0 18px rgba(255, 210, 90, 0.55);
-  background-image: radial-gradient(circle at center, rgba(255, 220, 100, 0.72), rgba(245, 190, 70, 0.28) 55%, transparent 75%);
-  transition: box-shadow 0.35s ease, background-image 0.35s ease;
-}
-
-.preview-confetti {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 5;
-  opacity: 0;
-}
-
-.preview-confetti.is-active {
-  opacity: 1;
-}
-
-.confetti-bit {
-  position: absolute;
-  border-radius: 1px;
-  animation-name: confetti-fall;
-  animation-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
-  animation-fill-mode: forwards;
-}
-
-@keyframes confetti-fall {
-  0% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
-    opacity: 0.95;
-  }
-  100% {
-    transform: translate3d(var(--drift, 0px), var(--fall, 700px), 0) rotate(var(--spin, 540deg));
-    opacity: 0.85;
-  }
-}
-
 /* Mode card on the RIGHT — light brown, darker border */
 .mode-card {
   order: 1;
@@ -992,7 +942,6 @@ body:not([data-bg="light"]) .captured img {
 .square.in-check {
   background-image: radial-gradient(circle, rgba(239, 68, 68, 0.95) 0%, rgba(220, 38, 38, 0.55) 40%, transparent 72%);
 }
-.preview-board .square.last-move { background-image: none; }
 
 /* A new check: the red glow pulses twice */
 .square.check-pulse { animation: check-pulse 0.45s ease-in-out 2; }

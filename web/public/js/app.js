@@ -105,6 +105,20 @@ let onlineTurn = 'w';
 let previewBoard = null;
 let previewChess = null;
 
+// Home page self-play (see startHomePreview)
+const OPENING_MOVES = {
+  first: ['e4', 'd4', 'c4', 'Nf3'],
+  reply: { e4: ['e5', 'c5', 'e6', 'c6'], d4: ['d5', 'Nf6', 'e6'], c4: ['e5', 'Nf6', 'c5'], Nf3: ['d5', 'Nf6', 'c5'] },
+};
+const PREVIEW_MOVE_MS = 1100;
+const PREVIEW_RESTART_MS = 3000;
+const PREVIEW_MAX_PLIES = 80;
+const previewEngine = new EngineClient();
+let previewTimer = null;
+let previewRun = 0; // bumped on stop, so stale engine replies are ignored
+
+const pick = (list) => list[Math.floor(Math.random() * list.length)];
+
 const board = new ChessBoard(boardEl, {
   onMove: handleBoardMove,
   onRender: (game) => {
@@ -659,22 +673,59 @@ function goHome() {
   showHome();
 }
 
+/*
+ * Home page: the engine plays itself on the preview board. The first two
+ * moves are picked at random from common openings so every visit shows a
+ * different game; after that both sides use the engine (Medium, 0.25s).
+ */
+
 function startHomePreview() {
   if (!previewEl) return;
   stopHomePreview();
+  const run = ++previewRun;
   previewChess = new Chess();
   previewBoard = new ChessBoard(previewEl, { onMove: () => {} });
   previewBoard.setInteractive(false);
   previewBoard.setGame(previewChess);
-  // Continuous CSS float + slow decorative demo moves (homepage only)
-  previewBoard.startIdleAnimation(true);
+  previewEl.classList.add('preview-board');
+
+  const step = async () => {
+    if (run !== previewRun) return;
+    const game = previewChess;
+    if (game.isGameOver() || game.history().length >= PREVIEW_MAX_PLIES) {
+      previewTimer = setTimeout(() => {
+        if (run !== previewRun) return;
+        game.reset();
+        previewBoard.setGame(game);
+        previewTimer = setTimeout(step, PREVIEW_MOVE_MS);
+      }, PREVIEW_RESTART_MS);
+      return;
+    }
+
+    const ply = game.history().length;
+    if (ply === 0) game.move(pick(OPENING_MOVES.first));
+    else if (ply === 1) game.move(pick(OPENING_MOVES.reply[game.history()[0]]));
+    else {
+      let result;
+      try {
+        result = await previewEngine.think(game.fen(), 'medium', 250);
+      } catch {
+        return; // stopped
+      }
+      if (run !== previewRun || !result.move) return;
+      game.move(result.move);
+    }
+    previewBoard.render();
+    previewTimer = setTimeout(step, PREVIEW_MOVE_MS);
+  };
+  previewTimer = setTimeout(step, 900);
 }
 
 function stopHomePreview() {
-  if (previewBoard) {
-    previewBoard.stopIdleAnimation();
-    previewBoard = null;
-  }
+  previewRun++;
+  clearTimeout(previewTimer);
+  previewEngine.cancel();
+  previewBoard = null;
   previewChess = null;
 }
 
