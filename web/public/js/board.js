@@ -15,6 +15,8 @@ const CLASSIC_FILES = {
 
 let pieceSet = 'kosal';
 
+const PIECE_NAMES = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' };
+
 /** Switch every board to another piece set ('kosal' or 'classic'). */
 function setPieceSet(name) {
   if (PIECE_SETS[name]) pieceSet = name;
@@ -301,6 +303,10 @@ class ChessBoard {
         const el = document.createElement('div');
         el.className = `square ${(r + c) % 2 === 0 ? 'light' : 'dark'}`;
         el.dataset.square = square;
+        el.setAttribute('role', 'gridcell');
+        el.setAttribute('aria-label', piece
+          ? `${square}, ${piece.color === 'w' ? 'white' : 'black'} ${PIECE_NAMES[piece.type]}`
+          : `${square}, empty`);
 
         if (last && (square === last.from || square === last.to)) el.classList.add('last-move');
         if (square === checkedKing) el.classList.add('in-check');
@@ -319,7 +325,7 @@ class ChessBoard {
           const key = piece.color + piece.type.toUpperCase();
           const img = document.createElement('img');
           img.src = pieceUrl(key);
-          img.alt = key;
+          img.alt = '';
           img.draggable = false;
           el.appendChild(img);
         }
