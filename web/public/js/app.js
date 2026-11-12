@@ -43,6 +43,8 @@ const pieceSelect = document.getElementById('piece-select');
 const timerSelect = document.getElementById('timer-select');
 const timerField = document.getElementById('timer-field');
 const levelField = document.getElementById('level-field');
+const colorField = document.getElementById('color-field');
+const colorSelect = document.getElementById('color-select');
 const settingsBtn = document.getElementById('btn-settings');
 const engineCard = document.getElementById('engine-card');
 const moveListEl = document.getElementById('move-list');
@@ -159,6 +161,19 @@ levelSelect.addEventListener('change', () => {
   // Takes effect from the engine's next move.
   engineLevel = levelSelect.value;
   localStorage.setItem('chess-level', engineLevel);
+});
+
+// Which side the player takes against the engine
+let playerColor = localStorage.getItem('chess-color') === 'b' ? 'b' : 'w';
+colorSelect.value = playerColor;
+colorSelect.addEventListener('change', () => {
+  playerColor = colorSelect.value;
+  localStorage.setItem('chess-color', playerColor);
+  if (mode === 'local-ai') resetLocal(); // switching sides starts a new game
+});
+
+document.getElementById('btn-flip').addEventListener('click', () => {
+  setBoardOrientation(board.orientation === 'w' ? 'b' : 'w');
 });
 
 const savedTimer = localStorage.getItem('chess-timer');
@@ -342,8 +357,10 @@ function updateModeUI({ onlineLobby = false, onlinePlaying = false } = {}) {
   evalBarEl.hidden = !single;
 
   clocksEl.classList.toggle('single-clock', single);
-  clockWhiteEl.querySelector('.clock-label').textContent = single ? 'You' : 'White';
-  clockBlackEl.querySelector('.clock-label').textContent = single ? 'Engine' : 'Black';
+  const label = (color, fallback) => (single ? (color === myColor ? 'You' : 'Engine') : fallback);
+  clockWhiteEl.querySelector('.clock-label').textContent = label('w', 'White');
+  clockBlackEl.querySelector('.clock-label').textContent = label('b', 'Black');
+  colorField.hidden = !single;
 
   if (mode === 'online') {
     timerSelect.disabled = !(myColor === 'w' && onlineLobby);
@@ -442,7 +459,7 @@ function showResult(winner, reason) {
   const name = (c) => (c === 'w' ? 'White' : 'Black');
   let detail;
   if (!winner) detail = 'Nobody wins this one.';
-  else if (mode === 'local-ai') detail = winner === 'w' ? `You beat the engine${inMoves}.` : `The engine wins${inMoves}.`;
+  else if (mode === 'local-ai') detail = winner === myColor ? `You beat the engine${inMoves}.` : `The engine wins${inMoves}.`;
   else if (mode === 'online') detail = winner === myColor ? `You win${inMoves}.` : `${name(winner)} wins${inMoves}.`;
   else detail = `${name(winner)} wins${inMoves}.`;
   gameOverDetailEl.textContent = detail;
@@ -584,12 +601,12 @@ function startLocal(selectedMode) {
   hideResult();
   showEngineInfo(null);
   chess = new Chess();
-  myColor = 'w';
+  myColor = selectedMode === 'local-ai' ? playerColor : 'w';
   gameOver = false;
   timedOut = null;
   aiThinking = false;
   board.setGame(chess);
-  setBoardOrientation('w');
+  setBoardOrientation(myColor);
   board.setInteractive(true);
   modeLabelEl.textContent = selectedMode === 'local-ai' ? 'Single Player' : 'Two Player';
   youAreEl.textContent = '';
@@ -600,6 +617,12 @@ function startLocal(selectedMode) {
   updateModeUI();
   updateStatus();
   showGame();
+  startEngineIfItsTurn();
+}
+
+/** Against the engine as Black, the engine opens; after undo it may be its move. */
+function startEngineIfItsTurn() {
+  if (mode === 'local-ai' && !gameOver && !aiThinking && chess.turn() !== myColor) runAiTurn();
 }
 
 function restoreClockSnapshot() {
@@ -612,6 +635,9 @@ function restoreClockSnapshot() {
 function undoLocal() {
   if (mode !== 'local-pvp' && mode !== 'local-ai') return;
   if (!chess) return;
+
+  // Playing Black, the engine's opening move alone can't be taken back.
+  if (mode === 'local-ai' && myColor === 'b' && chess.history().length <= 1) return;
 
   // If the engine is still thinking, only the player's last move needs undoing.
   const engineWasThinking = aiThinking;
@@ -635,6 +661,7 @@ function undoLocal() {
   board.setInteractive(true);
   updateStatus();
   renderClocks();
+  startEngineIfItsTurn();
 }
 
 function resetLocal() {
@@ -644,10 +671,18 @@ function resetLocal() {
   showEngineInfo(null);
   chess.reset();
   aiThinking = false;
+  gameOver = false;
+  timedOut = null;
+  if (mode === 'local-ai') {
+    myColor = playerColor;
+    setBoardOrientation(myColor);
+    updateModeUI();
+  }
   board.setGame(chess);
   board.setInteractive(true);
   applyLocalPreset(timerSelect.value, true);
   updateStatus();
+  startEngineIfItsTurn();
 }
 
 function updateStatus() {
@@ -677,7 +712,7 @@ function updateStatus() {
   }
 
   if (mode === 'local-ai') {
-    statusEl.textContent = (aiThinking || chess.turn() === 'b')
+    statusEl.textContent = (aiThinking || chess.turn() !== myColor)
       ? 'Waiting…'
       : (chess.isCheck() ? 'Your turn (check)' : 'Your turn');
     return;
@@ -815,7 +850,8 @@ async function runAiTurn() {
   let result;
   try {
     // Never spend more than ~1/30 of the remaining time on one move.
-    const budgetMs = Math.max(100, Math.floor(blackMs / 30));
+    const engineMs = myColor === 'w' ? blackMs : whiteMs;
+    const budgetMs = Math.max(100, Math.floor(engineMs / 30));
     result = await engine.think(fenBefore, engineLevel, budgetMs);
   } catch {
     return; // cancelled by undo, reset or leaving the game

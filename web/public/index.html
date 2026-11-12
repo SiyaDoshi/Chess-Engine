@@ -108,6 +108,14 @@
         </select>
       </label>
 
+      <label class="nav-field" id="color-field" hidden>
+        <span>Play as</span>
+        <select id="color-select">
+          <option value="w">White</option>
+          <option value="b">Black</option>
+        </select>
+      </label>
+
       <label class="nav-field" id="timer-field">
         <span>Timer</span>
         <select id="timer-select">
@@ -231,6 +239,7 @@
         <div id="play-controls" class="play-controls" hidden>
           <button type="button" id="btn-undo">Undo</button>
           <button type="button" id="btn-reset">Reset</button>
+          <button type="button" id="btn-flip" aria-label="Flip board">Flip</button>
         </div>
 
         <div id="lobby-panel" class="panel-card lobby-panel" hidden>
