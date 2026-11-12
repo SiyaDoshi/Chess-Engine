@@ -258,6 +258,28 @@ body.view
   .logo-knight { opacity: 1; }
 }
 
+.home-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0.9rem;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  z-index: 2;
+}
+.home-footer a {
+  color: var(--muted);
+  text-decoration: none;
+}
+.home-footer a:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
 .home-row {
   display: flex;
   flex-direction: row;
