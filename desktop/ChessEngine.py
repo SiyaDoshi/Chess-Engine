@@ -58,8 +58,9 @@ class GameState():
                 self.board[move.endRow][move.endCol-2] = '--'
 
         self.updateCastleRights(move)
+        # CastleRights takes (wks, bks, wqs, bqs): keep that order here.
         self.castleRightsLog.append(CastleRights(
-            self.currentCastlingRight.wks, self.currentCastlingRight.wqs, self.currentCastlingRight.bks, self.currentCastlingRight.bqs))
+            self.currentCastlingRight.wks, self.currentCastlingRight.bks, self.currentCastlingRight.wqs, self.currentCastlingRight.bqs))
 
     def undoMove(self):
         if len(self.moveLog) == 0:
