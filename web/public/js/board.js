@@ -26,6 +26,8 @@ function pieceUrl(key) {
 
 class ChessBoard {
   #idleTimer = null;
+  /** Drag in progress: { square, img, ghost, moved, ... } */
+  #drag = null;
   #animating = false;
 
   /**
@@ -42,7 +44,7 @@ class ChessBoard {
     this.legalTargets = [];
     this.interactive = true;
 
-    this.root.addEventListener('click', (e) => this.#onClick(e));
+    this.root.addEventListener('pointerdown', (e) => this.#onPointerDown(e));
   }
 
   setGame(chess) {
@@ -343,44 +345,109 @@ class ChessBoard {
     return 'abcdefgh'[c] + String(8 - r);
   }
 
-  #onClick(e) {
-    if (!this.interactive || !this.chess) return;
+  /*
+   * Moving pieces works two ways, both starting from pointerdown:
+   *  - click a piece, then click a highlighted square
+   *  - drag a piece and drop it on a highlighted square
+   * Pointer events cover mouse, touch and pen.
+   */
+  #onPointerDown(e) {
+    if (!this.interactive || !this.chess || e.button !== 0) return;
     const sqEl = e.target.closest('.square');
     if (!sqEl) return;
     const square = sqEl.dataset.square;
     const piece = this.chess.get(square);
 
-    if (this.selected) {
-      if (square === this.selected) {
-        this.selected = null;
-        this.legalTargets = [];
-        this.render();
-        return;
-      }
-
-      if (this.legalTargets.includes(square)) {
-        const from = this.selected;
-        const to = square;
-        this.selected = null;
-        this.legalTargets = [];
-        this.onMove({ from, to });
-        return;
-      }
-
-      if (piece && piece.color === this.chess.turn()) {
-        this.#select(square);
-        return;
-      }
-
-      this.selected = null;
-      this.legalTargets = [];
-      this.render();
+    // Second click of click-to-move
+    if (this.selected && this.legalTargets.includes(square)) {
+      const from = this.selected;
+      this.#clearSelection();
+      this.onMove({ from, to: square });
       return;
     }
 
     if (piece && piece.color === this.chess.turn()) {
-      this.#select(square);
+      const wasSelected = this.selected === square;
+      if (!wasSelected) this.#select(square);
+      this.#startDrag(e, square, wasSelected);
+      return;
     }
+
+    if (this.selected) this.#clearSelection();
+  }
+
+  #startDrag(e, square, wasSelected) {
+    const img = this.root.querySelector(`[data-square="${square}"] img`);
+    if (!img) return;
+    e.preventDefault();
+    this.#drag = {
+      square,
+      wasSelected,
+      img,
+      ghost: null,
+      moved: false,
+      startX: e.clientX,
+      startY: e.clientY,
+      size: img.getBoundingClientRect().width,
+    };
+
+    const onMove = (ev) => this.#onDragMove(ev);
+    const onEnd = (ev) => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onEnd);
+      window.removeEventListener('pointercancel', onEnd);
+      this.#onDragEnd(ev);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onEnd);
+    window.addEventListener('pointercancel', onEnd);
+  }
+
+  #onDragMove(ev) {
+    const d = this.#drag;
+    if (!d) return;
+    if (!d.moved) {
+      // Ignore tiny movements so a normal click doesn't become a drag.
+      if (Math.hypot(ev.clientX - d.startX, ev.clientY - d.startY) < 5) return;
+      d.moved = true;
+      d.ghost = d.img.cloneNode(true);
+      d.ghost.className = 'drag-ghost';
+      d.ghost.style.width = `${d.size}px`;
+      d.ghost.style.height = `${d.size}px`;
+      document.body.appendChild(d.ghost);
+      d.img.classList.add('drag-source');
+    }
+    d.ghost.style.transform = `translate(${ev.clientX - d.size / 2}px, ${ev.clientY - d.size / 2}px)`;
+  }
+
+  #onDragEnd(ev) {
+    const d = this.#drag;
+    this.#drag = null;
+    if (!d) return;
+    d.ghost?.remove();
+    d.img.classList.remove('drag-source');
+
+    if (!d.moved) {
+      // A plain click on an already selected piece deselects it.
+      if (d.wasSelected) this.#clearSelection();
+      return;
+    }
+
+    const under = ev.type === 'pointerup' ? document.elementFromPoint(ev.clientX, ev.clientY) : null;
+    const sqEl = under && this.root.contains(under) ? under.closest('.square') : null;
+    const to = sqEl?.dataset.square;
+    if (to && this.legalTargets.includes(to)) {
+      this.#clearSelection();
+      this.onMove({ from: d.square, to });
+    } else {
+      this.render(); // dropped elsewhere: piece goes back, stays selected
+    }
+  }
+
+  #clearSelection() {
+    this.selected = null;
+    this.legalTargets = [];
+    this.render();
   }
 
   #select(square) {

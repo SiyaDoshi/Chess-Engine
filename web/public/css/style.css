@@ -800,6 +800,19 @@ body:not([data-bg="light"]) .captured img {
 .square.dark .coord { color: var(--light-sq); }
 .preview-board .coord { display: none; }
 
+/* Drag and drop */
+#board.board { touch-action: none; }
+#board .square:has(img) { cursor: grab; }
+.drag-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  pointer-events: none;
+  object-fit: contain;
+}
+.drag-source { opacity: 0.3; }
+
 /* Gameplay board pieces must NOT float */
 #board.board .square img {
   animation: none !important;
