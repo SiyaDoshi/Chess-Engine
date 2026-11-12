@@ -304,6 +304,9 @@ timerSelect.addEventListener('change', () => {
 
 document.querySelectorAll('[data-mode]').forEach((btn) => {
   btn.addEventListener('click', () => {
+    document.getElementById('link-notice').hidden = true;
+  });
+  btn.addEventListener('click', () => {
     const m = btn.getAttribute('data-mode');
     if (m === 'local-pvp') startLocal('local-pvp');
     if (m === 'local-ai') startLocal('local-ai');
@@ -665,6 +668,7 @@ function cancelEngine() {
 }
 
 function goHome() {
+  document.getElementById('link-notice').hidden = true;
   cancelEngine();
   hideResult();
   if (socket) {
@@ -1066,7 +1070,9 @@ function joinOnlineGame(gameId) {
   const s = ensureSocket();
   s.emit('joinGame', { gameId }, (res) => {
     if (!res.ok) {
-      showError(menuError, res.error);
+      // Dead or mistyped link: explain it on the home page and drop /g/... from the URL
+      document.getElementById('link-notice').hidden = false;
+      window.history.replaceState({}, '', '/');
       showHome();
       return;
     }
