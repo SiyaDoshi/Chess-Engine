@@ -30,6 +30,10 @@ class ChessBoard {
   #idleTimer = null;
   /** Drag in progress: { square, img, ghost, moved, ... } */
   #drag = null;
+  /** Number of moves in the last rendered position, to spot a new move. */
+  #renderedPly = null;
+  /** Set when a move was dropped by drag, which needs no slide. */
+  #skipSlide = false;
   #animating = false;
 
   /**
@@ -335,7 +339,39 @@ class ChessBoard {
     }
 
     this.root.replaceChildren(frag);
+
+    // Slide the piece when exactly one new move appeared since last render.
+    const ply = history.length;
+    const isNewMove = this.#renderedPly !== null && ply === this.#renderedPly + 1;
+    this.#renderedPly = ply;
+    if (isNewMove && last && !this.#skipSlide) this.#slide(last.from, last.to);
+    this.#skipSlide = false;
+
     this.onRender?.(this.chess);
+  }
+
+  /** Animate the piece now on `to` from where it came from (about 150ms). */
+  #slide(from, to) {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const fromEl = this.root.querySelector(`[data-square="${from}"]`);
+    const toEl = this.root.querySelector(`[data-square="${to}"]`);
+    const img = toEl?.querySelector('img');
+    if (!fromEl || !img) return;
+    const a = fromEl.getBoundingClientRect();
+    const b = toEl.getBoundingClientRect();
+    toEl.classList.add('sliding'); // lets the piece show outside its square
+    img.style.transition = 'none';
+    img.style.transform = `translate(${a.left - b.left}px, ${a.top - b.top}px)`;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        img.style.transition = 'transform 150ms ease-out';
+        img.style.transform = '';
+      });
+    });
+    img.addEventListener('transitionend', () => {
+      img.style.transition = '';
+      toEl.classList.remove('sliding');
+    }, { once: true });
   }
 
   #kingSquare(color) {
@@ -452,6 +488,7 @@ class ChessBoard {
     const to = sqEl?.dataset.square;
     if (to && this.legalTargets.includes(to)) {
       this.#clearSelection();
+      this.#skipSlide = true; // already dropped where it belongs
       this.onMove({ from: d.square, to });
     } else {
       this.render(); // dropped elsewhere: piece goes back, stays selected

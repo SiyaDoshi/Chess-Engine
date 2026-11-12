@@ -1015,6 +1015,12 @@ body:not([data-bg="light"]) .captured img {
 .square.dark .coord { color: var(--light-sq); }
 .preview-board .coord { display: none; }
 
+/* A piece sliding in from another square must not be clipped */
+.square.sliding {
+  overflow: visible;
+  z-index: 3;
+}
+
 /* Drag and drop */
 #board.board { touch-action: none; }
 #board .square:has(img) { cursor: grab; }
