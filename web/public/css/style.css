@@ -1146,47 +1146,60 @@ body:not([data-bg="light"]) .captured img {
   }
 
   .home-board-wrap {
-    width: min(560px, 50vw, calc(100vh - 9.5rem));
+    width: min(520px, 48vw, calc(100vh - 14rem));
   }
 
   .mode-card {
-    width: min(300px, 28vw);
+    width: min(320px, 32vw);
   }
 }
 
 @media (max-width: 900px) {
-  /* Small screens may stack — allow scroll only then */
+  .home-row { gap: 2rem; }
+  .home-board-wrap { width: min(460px, 52vw, calc(100vh - 14rem)); }
+  .mode-card { width: min(300px, 38vw); }
+  .mode-secondary .mode-icon { display: none; }
+}
+
+@media (max-width: 720px) {
+  .mode-secondary .mode-icon { display: inline-flex; }
+}
+
+/* Phones: logo, then the buttons, then a smaller board */
+@media (max-width: 720px) {
   body.view-home {
     max-height: none;
     overflow-x: hidden;
     overflow-y: auto;
-    padding-top: 0.25rem;
+    padding: 1.25rem 1rem 1rem;
+    align-items: flex-start;
   }
 
-  .home-brand {
-    margin-bottom: 0.4rem;
-  }
-
-  .logo { font-size: clamp(44px, 12vw, 72px); }
+  .home-brand { margin-bottom: 1.25rem; }
+  .logo { font-size: clamp(44px, 13vw, 64px); }
 
   .home-row {
     flex-direction: column;
-    flex-wrap: wrap;
-    gap: 1.75rem;
-  }
-
-  .home-board-shell {
-    order: 0;
-    padding: 1rem;
-  }
-
-  .home-board-wrap {
-    width: min(480px, 86vw);
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 1.5rem;
   }
 
   .mode-card {
-    width: min(340px, 92vw);
+    order: 0;
+    width: min(420px, 100%);
+  }
+
+  .home-board-shell {
     order: 1;
+    padding: 0;
+  }
+
+  .home-board-wrap { width: min(340px, 82vw); }
+
+  .home-footer {
+    position: static;
+    margin-top: 1.5rem;
   }
 }
 
