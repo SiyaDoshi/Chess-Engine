@@ -13,7 +13,7 @@
  */
 
 import { evaluate, PIECE_VALUES } from './evaluate.js';
-import { legalMoves, makeMove, undoMove, inCheck, sideToMove, toPublicMove } from './board.js';
+import { legalMoves, noisyMoves, makeMove, undoMove, inCheck, sideToMove, toPublicMove } from './board.js';
 
 export const MATE = 100_000;
 
@@ -22,6 +22,7 @@ export const MATE = 100_000;
  * @property {number}  depth            search depth in plies (half-moves)
  * @property {boolean} [alphaBeta=true] set false to measure plain minimax
  * @property {boolean} [ordering=true]  set false to search moves unsorted
+ * @property {boolean} [quiescence=true] set false to stop dead at depth 0
  */
 
 /**
@@ -50,8 +51,35 @@ export function orderMoves(moves) {
  * @param {SearchOptions} opts
  */
 export function search(chess, opts) {
-  const options = { alphaBeta: true, ordering: true, ...opts };
+  const options = { alphaBeta: true, ordering: true, quiescence: true, ...opts };
   const order = (moves) => (options.ordering ? orderMoves(moves) : moves);
+
+  function staticScore() {
+    const score = evaluate(chess);
+    return sideToMove(chess) === 'w' ? score : -score;
+  }
+
+  /**
+   * Quiescence search: at the end of the main search, keep playing out
+   * captures until the position is quiet. Without it the engine would judge
+   * "I just took a pawn with my queen" as +1, without noticing the queen is
+   * recaptured on the next move (the horizon effect).
+   */
+  function quiesce(alpha, beta) {
+    nodes++;
+    const standPat = staticScore(); // the side to move may also decline all captures
+    if (standPat >= beta) return standPat;
+    if (standPat > alpha) alpha = standPat;
+
+    for (const move of orderMoves(noisyMoves(chess))) {
+      makeMove(chess, move);
+      const score = -quiesce(-beta, -alpha);
+      undoMove(chess);
+      if (score >= beta) return score;
+      if (score > alpha) alpha = score;
+    }
+    return alpha;
+  }
   const start = Date.now();
   let nodes = 0;
 
@@ -64,8 +92,7 @@ export function search(chess, opts) {
       return inCheck(chess) ? -MATE + ply : 0;
     }
     if (depth === 0) {
-      const score = evaluate(chess);
-      return sideToMove(chess) === 'w' ? score : -score;
+      return options.quiescence ? quiesce(alpha, beta) : staticScore();
     }
 
     let best = -Infinity;

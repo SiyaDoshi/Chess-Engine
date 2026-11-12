@@ -76,3 +76,12 @@ test('move ordering: same result, fewer positions searched', () => {
   assert.equal(ordered.score, unordered.score);
   assert.ok(ordered.nodes < unordered.nodes);
 });
+
+test('quiescence: does not grab a defended pawn with the queen', () => {
+  // Qxf7+ wins a pawn at depth 1, but the king takes the queen next move.
+  const fen = 'rnb1kbnr/ppp2ppp/3p4/4p3/4P3/5Q2/PPPP1PPP/RNB1KBNR w KQkq - 0 1';
+  const shallow = search(new Chess(fen), { depth: 1, quiescence: false });
+  assert.deepEqual(shallow.move, { from: 'f3', to: 'f7' });
+  const r = search(new Chess(fen), { depth: 1 });
+  assert.notDeepEqual(r.move, { from: 'f3', to: 'f7' });
+});
