@@ -68,3 +68,11 @@ test('search: alpha-beta picks the same score as plain minimax with fewer nodes'
   assert.equal(ab.score, plain.score);
   assert.ok(ab.nodes < plain.nodes);
 });
+
+test('move ordering: same result, fewer positions searched', () => {
+  const fen = 'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4';
+  const unordered = search(new Chess(fen), { depth: 4, ordering: false });
+  const ordered = search(new Chess(fen), { depth: 4 });
+  assert.equal(ordered.score, unordered.score);
+  assert.ok(ordered.nodes < unordered.nodes);
+});

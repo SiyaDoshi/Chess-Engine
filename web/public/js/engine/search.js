@@ -12,7 +12,7 @@
  * the result is converted back to White's point of view.
  */
 
-import { evaluate } from './evaluate.js';
+import { evaluate, PIECE_VALUES } from './evaluate.js';
 import { legalMoves, makeMove, undoMove, inCheck, sideToMove, toPublicMove } from './board.js';
 
 export const MATE = 100_000;
@@ -21,7 +21,28 @@ export const MATE = 100_000;
  * @typedef {object} SearchOptions
  * @property {number}  depth            search depth in plies (half-moves)
  * @property {boolean} [alphaBeta=true] set false to measure plain minimax
+ * @property {boolean} [ordering=true]  set false to search moves unsorted
  */
+
+/**
+ * Move ordering: alpha-beta prunes most when the best move is tried first.
+ * Captures go first, sorted by MVV-LVA (Most Valuable Victim, Least
+ * Valuable Attacker): taking a queen with a pawn before taking a pawn with
+ * a queen. Promotions come next, then quiet moves.
+ */
+function moveScore(move) {
+  let score = 0;
+  if (move.captured) score += 10 * PIECE_VALUES[move.captured] - PIECE_VALUES[move.piece] + 10_000;
+  if (move.promotion) score += PIECE_VALUES[move.promotion] + 5_000;
+  return score;
+}
+
+export function orderMoves(moves) {
+  return moves
+    .map((move) => ({ move, score: moveScore(move) }))
+    .sort((a, b) => b.score - a.score)
+    .map((x) => x.move);
+}
 
 /**
  * Find the best move for the side to move.
@@ -29,7 +50,8 @@ export const MATE = 100_000;
  * @param {SearchOptions} opts
  */
 export function search(chess, opts) {
-  const options = { alphaBeta: true, ...opts };
+  const options = { alphaBeta: true, ordering: true, ...opts };
+  const order = (moves) => (options.ordering ? orderMoves(moves) : moves);
   const start = Date.now();
   let nodes = 0;
 
@@ -47,7 +69,7 @@ export function search(chess, opts) {
     }
 
     let best = -Infinity;
-    for (const move of moves) {
+    for (const move of order(moves)) {
       makeMove(chess, move);
       const score = -negamax(depth - 1, ply + 1, -beta, -alpha);
       undoMove(chess);
@@ -61,7 +83,7 @@ export function search(chess, opts) {
     return best;
   }
 
-  const rootMoves = legalMoves(chess);
+  const rootMoves = order(legalMoves(chess));
   let bestMove = null;
   let bestScore = -Infinity;
   let alpha = -Infinity;
