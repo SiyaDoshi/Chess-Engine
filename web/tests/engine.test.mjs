@@ -161,3 +161,31 @@ test('transposition table: remembers positions and can be cleared', () => {
   clearTranspositionTable();
   assert.equal(transpositionTableSize(), 0);
 });
+
+test('draws: a losing side heads for a repetition', () => {
+  // White is a queen down; the knights have already shuffled out and back once.
+  const chess = new Chess('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1');
+  for (const m of ['Nf3', 'Nf6', 'Ng1', 'Ng8', 'Nf3', 'Nf6']) chess.move(m);
+  clearTranspositionTable();
+  const r = search(chess, { depth: 3 });
+  assert.deepEqual(r.move, { from: 'f3', to: 'g1' }); // repeats instead of staying a queen down
+  assert.equal(r.score, 0);
+});
+
+test('draws: a winning side avoids repeating', () => {
+  // Same shuffle, but now Black is the side a queen down and must not let White repeat.
+  const chess = new Chess('rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+  for (const m of ['Nf3', 'Nf6', 'Ng1', 'Ng8', 'Nf3', 'Nf6']) chess.move(m);
+  clearTranspositionTable();
+  const r = search(chess, { depth: 3 });
+  assert.notDeepEqual(r.move, { from: 'f3', to: 'g1' });
+  assert.ok(r.score > 500);
+});
+
+test('draws: the 50-move rule counts as a draw in the search', () => {
+  // Rook up, but 99 half-moves without a capture or pawn move: any quiet move ends the game drawn.
+  const chess = new Chess('4k3/8/8/8/8/8/8/R3K3 w - - 99 80');
+  clearTranspositionTable();
+  const r = search(chess, { depth: 2, quiescence: false });
+  assert.equal(r.score, 0);
+});
