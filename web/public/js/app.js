@@ -1110,7 +1110,8 @@ function enterOnline(gameId, color, state) {
   myColor = color;
   gameOver = false;
   timedOut = state.timedOut || null;
-  chess = new Chess(state.fen);
+  chess = new Chess();
+  syncOnlineGame(state); // keeps the move list when rejoining a game in progress
   board.setGame(chess);
   setBoardOrientation(color === 'b' ? 'b' : 'w');
   modeLabelEl.textContent = 'Online';
