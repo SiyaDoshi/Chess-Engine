@@ -330,6 +330,20 @@ document.querySelectorAll('[data-mode]').forEach((btn) => {
   });
 });
 
+// Play Online: a small panel to create a game or join one with a code
+const homeMain = document.getElementById('home-main');
+const onlinePanel = document.getElementById('online-panel');
+function showOnlinePanel(open) {
+  homeMain.hidden = open;
+  onlinePanel.hidden = !open;
+  if (open) onlinePanel.querySelector('.create-btn').focus();
+}
+document.getElementById('btn-play-online').addEventListener('click', () => {
+  document.getElementById('link-notice').hidden = true;
+  showOnlinePanel(true);
+});
+document.getElementById('btn-online-back').addEventListener('click', () => showOnlinePanel(false));
+
 btnHome.addEventListener('click', goHome);
 btnUndo.addEventListener('click', undoLocal);
 btnReset.addEventListener('click', resetLocal);
@@ -542,7 +556,7 @@ function customName(color) {
 function playerName(color) {
   const side = color === 'w' ? 'White' : 'Black';
   if (mode === 'local-ai' && color !== myColor) {
-    return `Gambit · ${LEVELS[levelSelect.value]?.label ?? 'Engine'}`;
+    return `Gambit (${LEVELS[levelSelect.value]?.label ?? 'Engine'})`;
   }
   const fallback = (mode === 'local-ai' || mode === 'online') && color === myColor ? 'You' : side;
   return customName(color) || fallback;
@@ -668,12 +682,7 @@ function renderReviewBar(sans) {
   const shown = reviewPly === 0
     ? 'the start'
     : `${Math.ceil(reviewPly / 2)}${reviewPly % 2 ? '.' : '...'} ${sans[reviewPly - 1]}`;
-  const clock = mode !== 'menu' && !gameOver ? ' Clocks keep running.' : '';
-  reviewTextEl.innerHTML = '';
-  const strong = document.createElement('strong');
-  strong.textContent = `Viewing ${shown}`;
-  reviewTextEl.append(strong, document.createElement('br'),
-    `The game is still at move ${Math.ceil(sans.length / 2)}.${clock}`);
+  reviewTextEl.textContent = `Viewing ${shown}`;
 }
 
 const START_COUNT = { p: 8, n: 2, b: 2, r: 2, q: 1 };
@@ -824,7 +833,7 @@ function showEngineInfo(result, fenBefore) {
   engineTimeEl.textContent = `${(result.timeMs / 1000).toFixed(2)}s`;
 
   if (result.mistake) {
-    engineLineEl.textContent = 'Played a looser move on purpose (Easy)';
+    engineLineEl.textContent = 'Easy level: chose a weaker move on purpose';
     return;
   }
   const replay = new Chess(fenBefore);
@@ -854,6 +863,7 @@ function cancelEngine() {
 
 function goHome() {
   document.getElementById('link-notice').hidden = true;
+  showOnlinePanel(false);
   cancelEngine();
   hideResult();
   if (socket) {
@@ -1286,7 +1296,7 @@ function ensureSocket() {
     if (reason === 'io client disconnect' || mode !== 'online' || gameOver) return;
     connectionLost = true;
     board.setInteractive(false);
-    statusEl.textContent = 'Connection lost · reconnecting…';
+    statusEl.textContent = 'Connection lost. Reconnecting…';
   });
   // Socket.IO reconnects by itself; the new connection then takes our seat back
   socket.on('connect', () => {
@@ -1325,8 +1335,8 @@ function showLinkNotice(full) {
     ? 'That game already has two players'
     : "That game isn't available";
   notice.querySelector('.link-notice-text').textContent = full
-    ? 'Games are private once both players have joined. Start your own game below and send a friend the link or code.'
-    : 'The code or link may be wrong, or the game ended and was closed. Start a new one below and send your friend the fresh link.';
+    ? 'Start your own game and send a friend the link.'
+    : 'Check the link or code, or start a new game.';
   notice.hidden = false;
 }
 
@@ -1409,7 +1419,7 @@ function applyOnlineState(state) {
   if (!both) {
     if (!started) waitText.textContent = 'Waiting for your friend to join';
     else if (spectating) waitText.textContent = `${missing} left · waiting for them to come back`;
-    else waitText.textContent = `${friend} left · clocks paused until they come back`;
+    else waitText.textContent = `${friend} left. Clocks are paused until they return.`;
   }
 
   if (state.timedOut) {
@@ -1435,7 +1445,7 @@ function applyOnlineState(state) {
     const side = state.turn === 'w' ? 'White' : 'Black';
     const yours = myColor === state.turn;
     if (spectating) statusEl.textContent = `Watching · ${side} to move`;
-    else if (!both && started) statusEl.textContent = `${friend} disconnected · clocks paused`;
+    else if (!both && started) statusEl.textContent = `${friend} disconnected. Clocks paused.`;
     else statusEl.textContent = yours ? `Your turn (${side})` : `Opponent's turn (${side})`;
     const canMove = (myColor === 'w' || myColor === 'b') && myColor === state.turn && both;
     board.setInteractive(canMove);

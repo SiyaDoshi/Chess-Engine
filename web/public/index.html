@@ -48,10 +48,10 @@
       <div class="mode-card">
         <div id="link-notice" class="link-notice" role="status" hidden>
           <p class="link-notice-title">That game isn't available</p>
-          <p class="link-notice-text">The link may be wrong, or the game ended and was closed. Start a new one below and send your friend the fresh link.</p>
+          <p class="link-notice-text">Check the link or code, or start a new game.</p>
         </div>
+        <div id="home-main">
         <h2>Play</h2>
-        <p class="sub">Choose how you want to play</p>
         <div class="menu-actions">
           <button type="button" data-mode="local-ai" class="mode-primary">
             <span class="mode-icon" aria-hidden="true">
@@ -73,7 +73,7 @@
               </span>
               Two Player
             </button>
-            <button type="button" data-mode="online-create">
+            <button type="button" id="btn-play-online">
               <span class="mode-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8">
                   <circle cx="12" cy="12" r="9"/>
@@ -83,8 +83,18 @@
               Play Online
             </button>
           </div>
+        </div>
+        </div>
+        <div id="online-panel" class="online-panel" hidden>
+          <button type="button" id="btn-online-back" class="back-btn">
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg>
+            Back
+          </button>
+          <h2>Play online</h2>
+          <button type="button" data-mode="online-create" class="primary-btn create-btn">Create a game</button>
+          <p class="create-note">You'll get a link and a code to send your friend.</p>
           <form id="join-form" class="join-form" autocomplete="off" novalidate>
-            <label for="join-code" class="join-label">Got a room code from a friend?</label>
+            <label for="join-code" class="join-label">Have a code? Join your friend's game</label>
             <div class="join-row">
               <input id="join-code" type="text" maxlength="12" placeholder="Enter code" autocapitalize="characters" spellcheck="false" />
               <button type="submit" id="btn-join">Join</button>
@@ -239,10 +249,10 @@
 
         <div id="lobby-panel" class="panel-card lobby-panel" hidden>
           <h3 class="card-title">Invite a friend</h3>
-          <p class="share-label">Send them this link:</p>
+          <p class="share-label">Send this link</p>
           <code id="share-link"></code>
           <button type="button" id="btn-copy" class="primary-btn">Copy link</button>
-          <p class="share-label">Or have them enter this code on the home page:</p>
+          <p class="share-label">or share the code</p>
           <div class="room-code-line">
             <strong id="room-code"></strong>
             <button type="button" id="btn-copy-code" class="small-btn">Copy code</button>
@@ -274,7 +284,7 @@
           </div>
           <ol id="move-list" class="move-list" aria-label="Moves played"></ol>
           <p id="move-list-empty" class="muted">No moves yet</p>
-          <p class="moves-hint">Click a move or use ← → to look back. The game itself doesn't change.</p>
+          <p class="moves-hint">Click a move or use ← → to step through the game</p>
         </div>
 
         <div id="play-controls" class="play-controls" hidden>
