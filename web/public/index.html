@@ -313,24 +313,26 @@
 
         <div id="engine-card" class="panel-card engine-card" hidden>
           <div class="engine-head">
-            <span class="engine-title">Engine
-              <button type="button" id="btn-engine-help" class="help-btn" aria-expanded="false" aria-controls="engine-help" title="What do these mean?">?</button>
-            </span>
-            <span id="engine-eval" class="engine-eval" title="Who is ahead, in pawns: + is good for White, - for Black. M3 means mate in 3.">0.0</span>
+            <span class="engine-title">Score</span>
+            <span id="engine-eval" class="engine-eval" title="Who is ahead, in pawns: + is good for White, − for Black. M3 means mate in 3.">0.0</span>
           </div>
-          <dl class="engine-stats">
-            <div title="How many moves ahead Gambit looked (one move by either side counts as one)"><dt>Depth</dt><dd id="engine-depth">–</dd></div>
-            <div title="How many positions Gambit examined to choose its move"><dt>Positions</dt><dd id="engine-nodes">–</dd></div>
-            <div title="How long Gambit thought about its move"><dt>Time</dt><dd id="engine-time">–</dd></div>
-          </dl>
-          <dl id="engine-help" class="engine-help" hidden>
-            <div><dt>Score</dt><dd>Who is ahead, in pawns. + is good for White, − for Black; 1.0 is about one pawn. M3 means checkmate in 3.</dd></div>
-            <div><dt>Depth</dt><dd>How many moves ahead Gambit looked. Each move by either side counts as one.</dd></div>
-            <div><dt>Positions</dt><dd>How many positions it examined to pick its move.</dd></div>
-            <div><dt>Time</dt><dd>How long it thought.</dd></div>
-            <div><dt>Best line</dt><dd>The moves it expects next if both sides play its way.</dd></div>
-          </dl>
-          <p class="engine-line" title="The moves Gambit expects next, if both sides play its way"><span class="engine-line-label">Best line</span> <span id="engine-line">–</span></p>
+          <button type="button" id="btn-engine-help" class="details-btn" aria-expanded="false" aria-controls="engine-details">How Gambit chose its move</button>
+          <!-- Hidden by default: the best line would tell you the engine's plan -->
+          <div id="engine-details" class="engine-details" hidden>
+            <dl class="engine-stats">
+              <div><dt>Depth</dt><dd id="engine-depth">–</dd></div>
+              <div><dt>Positions</dt><dd id="engine-nodes">–</dd></div>
+              <div><dt>Time</dt><dd id="engine-time">–</dd></div>
+            </dl>
+            <p class="engine-line"><span class="engine-line-label">Best line</span> <span id="engine-line">–</span></p>
+            <dl class="engine-help">
+              <div><dt>Score</dt><dd>Who is ahead, in pawns. + is good for White, − for Black; 1.0 is about one pawn. M3 means checkmate in 3.</dd></div>
+              <div><dt>Depth</dt><dd>How many moves ahead Gambit looked. Each move by either side counts as one.</dd></div>
+              <div><dt>Positions</dt><dd>How many positions it examined to pick its move.</dd></div>
+              <div><dt>Time</dt><dd>How long it thought.</dd></div>
+              <div><dt>Best line</dt><dd>The moves it expects next if both sides play its way.</dd></div>
+            </dl>
+          </div>
         </div>
 
         <div class="panel-card moves-card">

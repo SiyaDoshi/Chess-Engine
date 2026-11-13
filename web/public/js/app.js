@@ -216,12 +216,14 @@ legalToggle.addEventListener('change', () => {
   localStorage.setItem('chess-legal', legalToggle.checked ? 'on' : 'off');
 });
 
-// "?" in the engine box: what score, depth, positions and best line mean
+// Engine box: just the score while you play; depth, positions, time and the
+// best line (which would give away its plan) only when you open the details
 const engineHelpBtn = document.getElementById('btn-engine-help');
 engineHelpBtn.addEventListener('click', () => {
-  const help = document.getElementById('engine-help');
-  help.hidden = !help.hidden;
-  engineHelpBtn.setAttribute('aria-expanded', String(!help.hidden));
+  const details = document.getElementById('engine-details');
+  details.hidden = !details.hidden;
+  engineHelpBtn.setAttribute('aria-expanded', String(!details.hidden));
+  engineHelpBtn.textContent = details.hidden ? 'How Gambit chose its move' : 'Hide details';
 });
 
 // Sound on/off
@@ -756,7 +758,7 @@ function renderMoveList(game) {
     for (const j of [i, i + 1]) {
       const span = document.createElement('span');
       span.className = 'move-san';
-      if (sans[j]) span.append(...sanNodes(sans[j], j % 2 === 0 ? 'w' : 'b'));
+      span.textContent = sans[j] ?? '';
       if (sans[j]) span.dataset.ply = String(j + 1); // position after this move
       if (j === sans.length - 1) span.classList.add('latest');
       if (reviewPly !== null && j === reviewPly - 1) span.classList.add('viewing');
@@ -774,42 +776,6 @@ function renderMoveList(game) {
   else moveListEl.scrollTop = moveListEl.scrollHeight;
 }
 
-/**
- * A move like "Nf3" drawn the way chess sites show it: a small knight
- * icon, then "f3". The letter stays in the text for screen readers and
- * copying. Pawn moves ("e4") and castling ("O-O") have no piece letter.
- */
-const PIECE_NAMES = { K: 'king', Q: 'queen', R: 'rook', B: 'bishop', N: 'knight' };
-function pieceIcon(color, letter) {
-  const wrap = document.createElement('span');
-  wrap.className = 'san-piece';
-  const img = document.createElement('img');
-  img.src = window.pieceUrl(color + letter);
-  img.alt = '';
-  const text = document.createElement('span');
-  text.className = 'san-letter'; // zero-size text: read aloud and copied, not shown
-  text.textContent = letter;
-  wrap.title = PIECE_NAMES[letter];
-  wrap.append(img, text);
-  return wrap;
-}
-function sanNodes(san, color) {
-  const nodes = [];
-  let rest = san;
-  if (PIECE_NAMES[rest[0]]) {
-    nodes.push(pieceIcon(color, rest[0]));
-    rest = rest.slice(1);
-  }
-  const promo = rest.match(/=([QRBN])/);
-  if (promo) {
-    const [before, after] = rest.split(promo[0]);
-    nodes.push(before + '=', pieceIcon(color, promo[1]), after);
-  } else {
-    nodes.push(rest);
-  }
-  return nodes;
-}
-
 /** While looking back: say which move is shown and that the game is unchanged. */
 function renderReviewBar(sans) {
   const reviewing = reviewPly !== null;
@@ -819,12 +785,7 @@ function renderReviewBar(sans) {
   const shown = reviewPly === 0
     ? 'the start'
     : `${Math.ceil(reviewPly / 2)}${reviewPly % 2 ? '.' : '...'} ${sans[reviewPly - 1]}`;
-  if (reviewPly === 0) {
-    reviewTextEl.textContent = 'Viewing the start';
-  } else {
-    const num = `${Math.ceil(reviewPly / 2)}${reviewPly % 2 ? '.' : '...'} `;
-    reviewTextEl.replaceChildren('Viewing ', num, ...sanNodes(sans[reviewPly - 1], reviewPly % 2 ? 'w' : 'b'));
-  }
+  reviewTextEl.textContent = `Viewing ${shown}`;
 }
 
 const START_COUNT = { p: 8, n: 2, b: 2, r: 2, q: 1 };
@@ -852,16 +813,22 @@ function renderCaptured(game) {
         const img = document.createElement('img');
         img.src = window.pieceUrl(victimColor + type.toUpperCase());
         img.alt = '';
+        if (i > 0) img.className = 'stacked'; // same kind as the one before: tuck it in
         imgs.push(img);
       }
     }
+    // The pieces may be clipped on a narrow phone; the "+N" never is
+    const pieces = document.createElement('span');
+    pieces.className = 'captured-pieces';
+    pieces.append(...imgs);
+    const parts = [pieces];
     if (lead > 0) {
       const adv = document.createElement('span');
       adv.className = 'material-lead';
       adv.textContent = `+${lead}`;
-      imgs.push(adv);
+      parts.push(adv);
     }
-    el.replaceChildren(...imgs);
+    el.replaceChildren(...parts);
   };
   fill(capturedByWhiteEl, 'b', material);
   fill(capturedByBlackEl, 'w', -material);
@@ -990,17 +957,7 @@ function showEngineInfo(result, fenBefore) {
       break;
     }
   }
-  if (!san.length) {
-    engineLineEl.textContent = '–';
-    return;
-  }
-  const mover = new Chess(fenBefore).turn();
-  const parts = [];
-  san.forEach((move, i) => {
-    if (i) parts.push(' ');
-    parts.push(...sanNodes(move, (i % 2 === 0) === (mover === 'w') ? 'w' : 'b'));
-  });
-  engineLineEl.replaceChildren(...parts);
+  engineLineEl.textContent = san.join(' ') || '–';
 }
 
 /** Flip the board and keep the player at the bottom, the opponent on top. */
