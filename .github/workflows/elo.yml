@@ -1,0 +1,70 @@
+# Measures each level's Elo against Stockfish's strength-limited mode.
+# 18 jobs run side by side (3 levels x 2 Stockfish settings x 3 opening sets,
+# 16 games each), so every level plays 96 games. A final job combines them
+# into one table, shown on the run's summary page and saved as an artifact.
+name: Elo
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [upgrade]
+    paths: ['.github/workflows/elo.yml']
+
+jobs:
+  match:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        level: [easy, medium, hard]
+        pair: [low, high]
+        offset: [0, 8, 16]
+        include:
+          - { level: easy, pair: low, sf: 1320 }
+          - { level: easy, pair: high, sf: 1500 }
+          - { level: medium, pair: low, sf: 1600 }
+          - { level: medium, pair: high, sf: 1800 }
+          - { level: hard, pair: low, sf: 1800 }
+          - { level: hard, pair: high, sf: 2000 }
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Download Stockfish 16.1
+        run: |
+          curl -sSL -o /tmp/sf.tar https://github.com/official-stockfish/Stockfish/releases/download/sf_16.1/stockfish-ubuntu-x86-64-avx2.tar
+          tar -xf /tmp/sf.tar -C /tmp
+          echo "STOCKFISH=/tmp/stockfish/stockfish-ubuntu-x86-64-avx2" >> "$GITHUB_ENV"
+      - name: Play 16 games
+        run: node bench/elo/match.mjs ${{ matrix.level }} ${{ matrix.sf }} 16 results.json ${{ matrix.offset }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: elo-${{ matrix.level }}-${{ matrix.sf }}-${{ matrix.offset }}
+          path: web/results.json
+
+  summary:
+    needs: match
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/download-artifact@v4
+        with:
+          path: results
+          pattern: elo-*
+      - name: Combine
+        run: node web/bench/elo/summarize.mjs results elo-summary.json | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: elo-summary
+          path: elo-summary.json
