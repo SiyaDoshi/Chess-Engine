@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { Chess } from 'chess.js';
 import * as board from '../public/js/engine/board.js';
 import { evaluate } from '../public/js/engine/evaluate.js';
-import { search, MATE } from '../public/js/engine/search.js';
+import { search, MATE, clearTranspositionTable, transpositionTableSize } from '../public/js/engine/search.js';
 import { LEVELS, chooseMove } from '../public/js/engine/levels.js';
 
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -131,4 +131,33 @@ test('levels: medium never plays randomly and finds the mate', () => {
 test('levels: a time cap shortens the search', () => {
   const r = chooseMove(new Chess(KIWIPETE), 'hard', { maxTimeMs: 150 });
   assert.ok(r.timeMs < 600, `took ${r.timeMs}ms`);
+});
+
+test('transposition table: same scores as without it, with fewer positions searched', () => {
+  const fens = [START, KIWIPETE, 'r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4'];
+  for (const fen of fens) {
+    clearTranspositionTable();
+    const without = search(new Chess(fen), { depth: 4, tt: false, quiescence: false });
+    clearTranspositionTable();
+    const withTable = search(new Chess(fen), { depth: 4, quiescence: false });
+    assert.equal(withTable.score, without.score, fen);
+    assert.ok(withTable.nodes < without.nodes, `${fen}: ${withTable.nodes} vs ${without.nodes}`);
+  }
+});
+
+test('transposition table: mate scores stay correct when reused', () => {
+  clearTranspositionTable();
+  const chess = new Chess('k7/8/2K5/8/8/8/8/7R w - - 0 1');
+  search(chess, { depth: 4 });
+  const again = search(chess, { depth: 4 }); // now served largely from the table
+  assert.equal(again.score, MATE - 3);
+  assert.ok(again.ttHits > 0);
+});
+
+test('transposition table: remembers positions and can be cleared', () => {
+  clearTranspositionTable();
+  search(new Chess(START), { depth: 3 });
+  assert.ok(transpositionTableSize() > 0);
+  clearTranspositionTable();
+  assert.equal(transpositionTableSize(), 0);
 });
