@@ -86,3 +86,15 @@ test('server: malformed messages never crash it', async () => {
   await sleep(500);
   assert.ok(await alive(), 'server still answers after bad input');
 });
+
+test('server: clocks start with White\'s first move, not when Black joins', async () => {
+  const white = await player();
+  const created = await call(white, 'createGame', { timeControl: '5+0' });
+  const black = await player();
+  const joined = await call(black, 'joinGame', { gameId: created.gameId });
+  assert.equal(joined.state.clocksRunning, false, 'no clock before the first move');
+  await sleep(300);
+  const first = await call(white, 'makeMove', { from: 'e2', to: 'e4' });
+  assert.equal(first.state.clocksRunning, true);
+  assert.equal(first.state.whiteMs, 5 * 60 * 1000, "White's first move cost no time");
+});
