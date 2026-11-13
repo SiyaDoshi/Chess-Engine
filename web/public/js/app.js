@@ -324,25 +324,52 @@ document.querySelectorAll('[data-mode]').forEach((btn) => {
   });
   btn.addEventListener('click', () => {
     const m = btn.getAttribute('data-mode');
-    if (m === 'local-pvp') startLocal('local-pvp');
+    if (m === 'local-pvp') {
+      savePvpNames();
+      startLocal('local-pvp');
+    }
     if (m === 'local-ai') startLocal('local-ai');
     if (m === 'online-create') createOnlineGame();
   });
 });
 
-// Play Online: a small panel to create a game or join one with a code
+/*
+ * Home panels: Two Player asks for both names, Play Online offers to
+ * create a game or join one with a code. "Your name" boxes (home and
+ * online) share one saved name.
+ */
 const homeMain = document.getElementById('home-main');
-const onlinePanel = document.getElementById('online-panel');
-function showOnlinePanel(open) {
-  homeMain.hidden = open;
-  onlinePanel.hidden = !open;
-  if (open) onlinePanel.querySelector('.create-btn').focus();
+const homePanels = ['pvp-panel', 'online-panel'].map((id) => document.getElementById(id));
+function showHomePanel(id) {
+  homeMain.hidden = !!id;
+  for (const panel of homePanels) panel.hidden = panel.id !== id;
+  for (const input of document.querySelectorAll('.my-name')) input.value = storedName('chess-name');
+  if (id === 'pvp-panel') {
+    document.getElementById('pvp-name-w').value = storedName('chess-name-w');
+    document.getElementById('pvp-name-b').value = storedName('chess-name-b');
+    document.getElementById('pvp-name-w').focus();
+  }
+  if (id) document.getElementById('link-notice').hidden = true;
 }
-document.getElementById('btn-play-online').addEventListener('click', () => {
-  document.getElementById('link-notice').hidden = true;
-  showOnlinePanel(true);
-});
-document.getElementById('btn-online-back').addEventListener('click', () => showOnlinePanel(false));
+const showOnlinePanel = (open) => showHomePanel(open ? 'online-panel' : null);
+document.getElementById('btn-play-online').addEventListener('click', () => showHomePanel('online-panel'));
+document.getElementById('btn-two-player').addEventListener('click', () => showHomePanel('pvp-panel'));
+for (const back of document.querySelectorAll('[data-back]')) {
+  back.addEventListener('click', () => showHomePanel(null));
+}
+for (const input of document.querySelectorAll('.my-name')) {
+  input.value = storedName('chess-name');
+  input.addEventListener('input', () => storeName('chess-name', cleanName(input.value)));
+}
+function savePvpNames() {
+  storeName('chess-name-w', cleanName(document.getElementById('pvp-name-w').value));
+  storeName('chess-name-b', cleanName(document.getElementById('pvp-name-b').value));
+}
+for (const id of ['pvp-name-w', 'pvp-name-b']) {
+  document.getElementById(id).addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.querySelector('#pvp-panel [data-mode="local-pvp"]').click();
+  });
+}
 
 btnHome.addEventListener('click', goHome);
 btnUndo.addEventListener('click', undoLocal);
@@ -578,6 +605,7 @@ function renderPlayers() {
 
 function setPlayerName(color, raw) {
   const name = cleanName(raw);
+  queueMicrotask(() => { if (mode === 'local-ai' || mode === 'local-pvp') updateStatus(); });
   if (mode === 'local-pvp') {
     storeName(`chess-name-${color}`, name);
   } else {
@@ -748,12 +776,11 @@ function showResult(winner, reason) {
 
   const moves = chess ? Math.ceil(chess.history().length / 2) : 0;
   const inMoves = moves ? ` in ${moves} move${moves === 1 ? '' : 's'}` : '';
-  const name = (c) => (c === 'w' ? 'White' : 'Black');
   let detail;
   if (!winner) detail = 'Nobody wins this one.';
-  else if (mode === 'local-ai') detail = winner === myColor ? `You beat the engine${inMoves}.` : `The engine wins${inMoves}.`;
-  else if (mode === 'online') detail = winner === myColor ? `You win${inMoves}.` : `${name(winner)} wins${inMoves}.`;
-  else detail = `${name(winner)} wins${inMoves}.`;
+  else if (mode === 'local-ai') detail = winner === myColor ? `You beat Gambit${inMoves}.` : `Gambit wins${inMoves}.`;
+  else if (mode === 'online' && winner === myColor) detail = `You win${inMoves}.`;
+  else detail = `${winText(winner, '').trim()}${inMoves}.`;
   gameOverDetailEl.textContent = detail;
 
   playAgainBtn.hidden = mode === 'online';
@@ -1042,14 +1069,14 @@ function resetLocal() {
 function updateStatus() {
   if (!chess) return;
   if (timedOut) {
-    statusEl.textContent = timedOut === 'w' ? 'Black wins on time' : 'White wins on time';
+    statusEl.textContent = winText(timedOut === 'w' ? 'b' : 'w', 'on time');
     board.setInteractive(false);
     gameOver = true;
     showResult(timedOut === 'w' ? 'b' : 'w', 'time');
     return;
   }
   if (chess.isCheckmate()) {
-    statusEl.textContent = chess.turn() === 'w' ? 'Black wins by checkmate' : 'White wins by checkmate';
+    statusEl.textContent = winText(chess.turn() === 'w' ? 'b' : 'w', 'by checkmate');
     board.setInteractive(false);
     clocksRunning = false;
     gameOver = true;
@@ -1065,15 +1092,32 @@ function updateStatus() {
     return;
   }
 
-  if (mode === 'local-ai') {
-    statusEl.textContent = (aiThinking || chess.turn() !== myColor)
-      ? 'Waiting…'
-      : (chess.isCheck() ? 'Your turn (check)' : 'Your turn');
+  if (mode === 'local-ai' && (aiThinking || chess.turn() !== myColor)) {
+    statusEl.textContent = 'Gambit is thinking…';
     return;
   }
+  statusEl.textContent = turnText(chess.turn(), chess.isCheck());
+}
 
-  const side = chess.turn() === 'w' ? 'White' : 'Black';
-  statusEl.textContent = chess.isCheck() ? `${side} to move (check)` : `${side} to move`;
+/** One line for whose turn it is: "Siya's turn (White)", "Your turn (Black)". */
+function turnText(color, check = false) {
+  const side = color === 'w' ? 'White' : 'Black';
+  const name = shortName(color);
+  const whose = name === 'You' ? 'Your' : `${name}'s`;
+  // A player without a custom name is just "White" or "Black": no need to repeat it
+  const colour = name === side ? '' : ` (${side})`;
+  return `${check ? 'Check! ' : ''}${whose} turn${colour}`;
+}
+
+/** "You win by checkmate", "Rohan wins on time", "Gambit wins by checkmate". */
+function winText(color, how) {
+  const name = shortName(color);
+  return `${name} ${name === 'You' ? 'win' : 'wins'} ${how}`;
+}
+
+/** A player's name without the engine's level, for sentences. */
+function shortName(color) {
+  return mode === 'local-ai' && color !== myColor ? 'Gambit' : playerName(color);
 }
 
 /** True if moving from -> to is a pawn reaching the last rank. */
@@ -1202,7 +1246,7 @@ async function runAiTurn() {
   aiThinking = true;
   const token = ++aiToken;
   board.setInteractive(false);
-  statusEl.textContent = 'Engine is thinking…';
+  statusEl.textContent = 'Gambit is thinking…';
   lastTickAt = Date.now();
   renderClocks();
 
@@ -1371,7 +1415,9 @@ function enterOnline(gameId, color, state) {
 
   if (state.timeControl) timerSelect.value = state.timeControl;
 
-  shareLinkEl.textContent = `${window.location.origin}/g/${gameId}`;
+  shareLinkEl.dataset.url = `${window.location.origin}/g/${gameId}`;
+  shareLinkEl.textContent = `${window.location.host}/g/${gameId}`;
+  shareLinkEl.title = shareLinkEl.dataset.url;
   roomCodeEl.textContent = gameId.toUpperCase();
   roomBadge.textContent = `Room: ${gameId.toUpperCase()}`;
 
@@ -1424,7 +1470,7 @@ function applyOnlineState(state) {
 
   if (state.timedOut) {
     gameOver = true;
-    statusEl.textContent = state.timedOut === 'w' ? 'Black wins on time' : 'White wins on time';
+    statusEl.textContent = winText(state.timedOut === 'w' ? 'b' : 'w', 'on time');
     board.setInteractive(false);
     showResult(state.timedOut === 'w' ? 'b' : 'w', 'time');
     return;
@@ -1432,7 +1478,7 @@ function applyOnlineState(state) {
 
   if (state.isCheckmate) {
     gameOver = true;
-    statusEl.textContent = state.turn === 'w' ? 'Black wins by checkmate' : 'White wins by checkmate';
+    statusEl.textContent = winText(state.turn === 'w' ? 'b' : 'w', 'by checkmate');
     board.setInteractive(false);
     showResult(state.turn === 'w' ? 'b' : 'w', 'checkmate');
   } else if (state.isDraw || (state.isGameOver && !state.timedOut)) {
@@ -1443,10 +1489,9 @@ function applyOnlineState(state) {
   } else {
     gameOver = false;
     const side = state.turn === 'w' ? 'White' : 'Black';
-    const yours = myColor === state.turn;
     if (spectating) statusEl.textContent = `Watching · ${side} to move`;
     else if (!both && started) statusEl.textContent = `${friend} disconnected. Clocks paused.`;
-    else statusEl.textContent = yours ? `Your turn (${side})` : `Opponent's turn (${side})`;
+    else statusEl.textContent = turnText(state.turn, !!chess?.isCheck());
     const canMove = (myColor === 'w' || myColor === 'b') && myColor === state.turn && both;
     board.setInteractive(canMove);
   }
@@ -1479,7 +1524,7 @@ document.getElementById('btn-copy-code').addEventListener('click', async (e) => 
 
 async function copyShareLink() {
   try {
-    await navigator.clipboard.writeText(shareLinkEl.textContent);
+    await navigator.clipboard.writeText(shareLinkEl.dataset.url);
     btnCopy.textContent = 'Copied!';
     setTimeout(() => { btnCopy.textContent = 'Copy link'; }, 1200);
   } catch {

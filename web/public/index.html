@@ -52,6 +52,10 @@
         </div>
         <div id="home-main">
         <h2>Play</h2>
+          <label class="name-field">
+            <span>Your name</span>
+            <input id="home-name" class="my-name" type="text" maxlength="20" placeholder="Optional" autocomplete="nickname" spellcheck="false" />
+          </label>
         <div class="menu-actions">
           <button type="button" data-mode="local-ai" class="mode-primary">
             <span class="mode-icon" aria-hidden="true">
@@ -63,7 +67,7 @@
             </span>
           </button>
           <div class="mode-secondary">
-            <button type="button" data-mode="local-pvp">
+            <button type="button" id="btn-two-player">
               <span class="mode-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
                   <circle cx="9" cy="8" r="3.2"/>
@@ -85,12 +89,32 @@
           </div>
         </div>
         </div>
+        <div id="pvp-panel" class="online-panel" hidden>
+          <button type="button" class="back-btn" data-back>
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg>
+            Back
+          </button>
+          <h2>Two player</h2>
+          <label class="name-field">
+            <span>White</span>
+            <input id="pvp-name-w" type="text" maxlength="20" placeholder="White" spellcheck="false" />
+          </label>
+          <label class="name-field">
+            <span>Black</span>
+            <input id="pvp-name-b" type="text" maxlength="20" placeholder="Black" spellcheck="false" />
+          </label>
+          <button type="button" data-mode="local-pvp" class="primary-btn create-btn">Start game</button>
+        </div>
         <div id="online-panel" class="online-panel" hidden>
-          <button type="button" id="btn-online-back" class="back-btn">
+          <button type="button" id="btn-online-back" class="back-btn" data-back>
             <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg>
             Back
           </button>
           <h2>Play online</h2>
+          <label class="name-field">
+            <span>Your name</span>
+            <input id="online-name" class="my-name" type="text" maxlength="20" placeholder="Optional" autocomplete="nickname" spellcheck="false" />
+          </label>
           <button type="button" data-mode="online-create" class="primary-btn create-btn">Create a game</button>
           <p class="create-note">You'll get a link and a code to send your friend.</p>
           <form id="join-form" class="join-form" autocomplete="off" novalidate>
@@ -243,24 +267,22 @@
       <aside class="side-panel">
         <div class="panel-card status-card">
           <p id="status" class="status">Your turn</p>
-          <p id="you-are" class="muted"></p>
+          <p id="you-are" class="visually-hidden"></p>
           <p id="game-error" class="error" hidden></p>
         </div>
 
         <div id="lobby-panel" class="panel-card lobby-panel" hidden>
           <h3 class="card-title">Invite a friend</h3>
-          <p class="share-label">Send this link</p>
-          <code id="share-link"></code>
-          <button type="button" id="btn-copy" class="primary-btn">Copy link</button>
-          <p class="share-label">or share the code</p>
-          <div class="room-code-line">
+          <div class="share-row">
+            <code id="share-link"></code>
+            <button type="button" id="btn-copy" class="small-btn">Copy link</button>
+          </div>
+          <div class="share-row">
+            <span class="share-code-label">Code</span>
             <strong id="room-code"></strong>
             <button type="button" id="btn-copy-code" class="small-btn">Copy code</button>
           </div>
-          <p id="wait-msg" class="wait-msg">
-            <span class="thinking" aria-hidden="true"><i></i><i></i><i></i></span>
-            <span id="wait-text">Waiting for your friend to join</span>
-          </p>
+          <p id="wait-msg" class="wait-msg"><span id="wait-text">Waiting for your friend to join</span></p>
         </div>
 
         <div id="engine-card" class="panel-card engine-card" hidden>
@@ -284,7 +306,6 @@
           </div>
           <ol id="move-list" class="move-list" aria-label="Moves played"></ol>
           <p id="move-list-empty" class="muted">No moves yet</p>
-          <p class="moves-hint">Click a move or use ← → to step through the game</p>
         </div>
 
         <div id="play-controls" class="play-controls" hidden>
