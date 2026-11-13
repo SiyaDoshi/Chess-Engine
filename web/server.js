@@ -91,10 +91,13 @@ function settleClocks(game, now = Date.now()) {
   }
 }
 
+// Clocks start with White's first move (not when Black joins), and resume
+// when a player rejoins a game already in progress.
 function maybeStartClocks(game) {
   if (
     game.whiteId &&
     game.blackId &&
+    game.chess.history().length > 0 &&
     !game.clocks.clocksRunning &&
     !game.clocks.timedOut &&
     !game.chess.isGameOver()

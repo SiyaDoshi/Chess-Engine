@@ -382,10 +382,18 @@ function applyLocalPreset(tc, resetHistory) {
   incrementMs = preset.incrementMs;
   timedOut = null;
   gameOver = false;
-  clocksRunning = true;
+  // Like on chess sites, no clock runs until White's first move.
+  clocksRunning = !!chess && chess.history().length > 0;
   lastTickAt = Date.now();
   if (resetHistory) clockHistory = [];
   renderClocks();
+}
+
+/** Start the clocks with the game's first move (it starts the opponent's clock). */
+function startClocksIfFirstMove() {
+  if (clocksRunning || gameOver || timedOut) return;
+  clocksRunning = true;
+  lastTickAt = Date.now();
 }
 
 function settleLocalClocks(now = Date.now()) {
@@ -836,7 +844,7 @@ function undoLocal() {
   timedOut = null;
   gameOver = false;
   aiThinking = false;
-  clocksRunning = true;
+  clocksRunning = chess.history().length > 0; // undoing back to the start stops the clocks
   lastTickAt = Date.now();
   board.setGame(chess);
   board.setInteractive(true);
@@ -976,6 +984,7 @@ async function handleBoardMove({ from, to }) {
       board.render();
       return;
     }
+    startClocksIfFirstMove();
 
     if (move.color === 'w') whiteMs += incrementMs;
     else blackMs += incrementMs;
@@ -1050,6 +1059,7 @@ async function runAiTurn() {
   if (result.move) {
     pushClockSnapshot();
     const move = chess.move(result.move);
+    startClocksIfFirstMove();
     if (move.color === 'b') blackMs += incrementMs;
     else whiteMs += incrementMs;
   }
