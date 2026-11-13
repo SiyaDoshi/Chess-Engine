@@ -83,6 +83,13 @@
               Play Online
             </button>
           </div>
+          <form id="join-form" class="join-form" autocomplete="off" novalidate>
+            <label for="join-code" class="join-label">Got a room code from a friend?</label>
+            <div class="join-row">
+              <input id="join-code" type="text" maxlength="12" placeholder="Enter code" autocapitalize="characters" spellcheck="false" />
+              <button type="submit" id="btn-join">Join</button>
+            </div>
+          </form>
         </div>
         <p id="menu-error" class="error" hidden></p>
       </div>
@@ -230,10 +237,14 @@
 
         <div id="lobby-panel" class="panel-card lobby-panel" hidden>
           <h3 class="card-title">Invite a friend</h3>
-          <p class="share-label">Share this link:</p>
+          <p class="share-label">Send them this link:</p>
           <code id="share-link"></code>
           <button type="button" id="btn-copy" class="primary-btn">Copy link</button>
-          <p class="room-code-line">Room code: <strong id="room-code"></strong></p>
+          <p class="share-label">Or have them enter this code on the home page:</p>
+          <div class="room-code-line">
+            <strong id="room-code"></strong>
+            <button type="button" id="btn-copy-code" class="small-btn">Copy code</button>
+          </div>
           <p id="wait-msg" class="wait-msg">
             <span class="thinking" aria-hidden="true"><i></i><i></i><i></i></span>
             <span id="wait-text">Waiting for your friend to join</span>
