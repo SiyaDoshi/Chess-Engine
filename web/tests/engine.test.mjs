@@ -189,3 +189,17 @@ test('draws: the 50-move rule counts as a draw in the search', () => {
   const r = search(chess, { depth: 2, quiescence: false });
   assert.equal(r.score, 0);
 });
+
+test('mop-up: a bare king is pushed to the edge', () => {
+  // White has a rook vs a bare king: king on the edge must score higher than in the centre.
+  const edge = evaluate(new Chess('4k3/8/8/8/8/8/8/R3K3 w - - 0 1'));
+  const centre = evaluate(new Chess('8/8/8/4k3/8/8/8/R3K3 w - - 0 1'));
+  assert.ok(edge > centre, `${edge} vs ${centre}`);
+});
+
+test('mop-up: bishop + knight drive the king to a corner of the bishop\'s color', () => {
+  // Dark-squared bishop (c1): the a1/h8 corners are the mating corners, a8/h1 are not.
+  const right = evaluate(new Chess('7k/8/8/8/8/8/8/2B1KN2 w - - 0 1')); // king on h8 (dark)
+  const wrong = evaluate(new Chess('k7/8/8/8/8/8/8/2B1KN2 w - - 0 1')); // king on a8 (light)
+  assert.ok(right > wrong, `${right} vs ${wrong}`);
+});
