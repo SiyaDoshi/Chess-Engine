@@ -6,7 +6,7 @@ A chess engine written from scratch, playable in the browser.
 
 ![Playing against Gambit](docs/demo.gif)
 
-The engine searches with NegaMax and alpha-beta pruning, orders moves so it can skip most of the tree, keeps calculating through captures with quiescence search, and deepens iteratively until its time runs out. It runs in a Web Worker, so the page stays smooth while it thinks.
+The engine searches with NegaMax and alpha-beta pruning, orders moves so it can skip most of the tree, remembers positions it has already searched in a transposition table, keeps calculating through captures with quiescence search, avoids repetition draws when it's winning, and deepens iteratively until its time runs out. It runs in a Web Worker, so the page stays smooth while it thinks. Hard plays at roughly 1,900 Elo on Stockfish's scale.
 
 ## Features
 
@@ -27,13 +27,17 @@ The engine lives in [`web/public/js/engine/`](web/public/js/engine):
 | --- | --- |
 | `board.js` | Fast move generation on top of chess.js's internal 0x88 board (~575k positions/sec) |
 | `evaluate.js` | Material plus piece-square tables, with a separate king table for the endgame |
-| `search.js` | NegaMax + alpha-beta, MVV-LVA move ordering, quiescence search, iterative deepening, time limit |
+| `search.js` | NegaMax + alpha-beta, MVV-LVA move ordering, transposition table, quiescence search, repetition and 50-move draw detection, iterative deepening, time limit |
 | `levels.js` | Easy / Medium / Hard settings |
 | `worker.js`, `client.js` | Runs the search in a Web Worker and exposes `think(fen, level)` |
 
 **Search.** NegaMax is minimax written once: my best score is the negative of my opponent's best score. Alpha-beta pruning stops looking at a move as soon as it's proven worse than an option already found.
 
 **Move ordering.** Alpha-beta prunes the most when good moves come first, so captures are tried first, sorted by *most valuable victim, least valuable attacker*, and the best line from the previous depth is tried before anything else.
+
+**Transposition table.** The same position is often reached by different move orders (1.e4 e5 2.Nf3 and 1.Nf3 e5 2.e4). Every searched position is stored under its 64-bit Zobrist hash with its depth, score, bound type and best move, so it can be reused instead of searched again; even when the stored search is too shallow, its best move is tried first. At depth 5 this cuts the search by 55%, and Hard reaches one more half-move in the same time.
+
+**Draw awareness.** A position that already occurred (in the game or earlier in the searched line) and the 50-move limit score as draws, so the engine doesn't shuffle a won endgame into a threefold repetition, and a losing engine looks for one. These scores depend on how a position was reached, so they are kept out of the transposition table.
 
 **Quiescence search.** At the end of the main search the engine keeps playing out captures until the position is quiet. Without this it would happily take a defended pawn with its queen because the recapture is one move past its horizon.
 
@@ -43,17 +47,25 @@ The engine lives in [`web/public/js/engine/`](web/public/js/engine):
 
 `npm run bench` searches standard positions with each technique switched on in turn (quiescence off so every row searches the same tree):
 
-| Position | Depth | Minimax | + Alpha-beta | + Move ordering |
-| --- | --- | --- | --- | --- |
-| Start position | 4 | 216,369 positions · 5.2s | 2,152 · 0.07s | 2,128 · 0.05s (**99.0% fewer**) |
-| Italian Game | 4 | 978,800 positions · 33.4s | 92,739 · 3.1s | 13,087 · 0.46s (**98.7% fewer**) |
-| Kiwipete (middlegame) | 3 | 102,087 positions · 4.6s | 5,164 · 0.26s | 2,847 · 0.13s (**97.2% fewer**) |
+| Position | Depth | Minimax | + Alpha-beta | + Move ordering | + Transposition table |
+| --- | --- | --- | --- | --- | --- |
+| Start position | 4 | 216,369 · 5.1s | 2,152 · 0.06s | 2,128 · 0.05s | 2,004 · 0.04s (**99.1% fewer**) |
+| Italian Game | 4 | 978,800 · 30.9s | 92,739 · 2.8s | 13,087 · 0.42s | 9,706 · 0.30s (**99.0% fewer**) |
+| Kiwipete (middlegame) | 3 | 102,087 · 4.1s | 5,164 · 0.21s | 2,847 · 0.12s | 2,641 · 0.11s (**97.4% fewer**) |
 
-| Level | Search | Typical result |
-| --- | --- | --- |
-| Easy | depth 1, plays a random move 30% of the time | instant |
-| Medium | depth 4, capped at 1s | depth 3–4 in 0.15–1s |
-| Hard | as deep as it can in 2.5s | depth 5 in the opening, 4 in busy middlegames |
+The transposition table matters most in deeper searches: at depth 5 it cuts the Italian Game from 215,907 to 97,136 positions (55% fewer, 4.5s → 2.1s) and Kiwipete from 428,148 to 199,902 (53% fewer).
+
+### Strength
+
+Measured in games against **Stockfish 16.1** in its strength-limited mode, on the 60s + 0.6s clock its Elo setting is calibrated for. Small samples, so roughly ±200:
+
+| Level | Search | Result | Estimated Elo |
+| --- | --- | --- | --- |
+| Easy | depth 1, plays a random move 30% of the time | lost all 12 games to Medium | below 1,300 (beginner) |
+| Medium | depth 4, capped at 1s | 8/10 vs Stockfish 1500 | about 1,750 |
+| Hard | as deep as it can in 2.5s (usually 5–6 half-moves) | 7/10 vs Stockfish 1700, 5.5/8 vs Stockfish 1900 | about 1,930 |
+
+These are on Stockfish's engine scale, not chess.com or FIDE ratings.
 
 ## Tests
 
@@ -63,7 +75,7 @@ python3 -m unittest discover desktop/tests  # desktop move generator and AI
 ```
 
 - **Perft** checks count every position reachable in N moves and compare with the published numbers. Running them against the original Python move generator found three bugs: castling rights saved in the wrong order, castling still allowed after the rook was captured, and no under-promotion. All three are fixed, and it now matches all six standard test positions.
-- Engine tests check mates in one and two, winning free material, the horizon effect, time limits, and that alpha-beta and move ordering return the same result as plain minimax while searching less.
+- Engine tests check mates in one and two, winning free material, the horizon effect, time limits, repetition and 50-move draws, and that alpha-beta, move ordering and the transposition table return the same result as plain minimax while searching less.
 
 ## Run it locally
 
