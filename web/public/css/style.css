@@ -883,17 +883,19 @@ body.view-home:not(.home-ready) .home-footer { opacity: 0; }
   align-items: center;
   min-height: 20px;
   overflow: hidden;
-  /* The pieces overlap by 6px; give the last one its 6px back so it isn't cut in half */
-  padding-right: 6px;
+  padding-right: 2px;
 }
+/* Captured pieces: same kinds stacked together (like chess.com), a small gap between kinds */
 .captured img {
-  width: 22px;
-  height: 22px;
-  margin-right: -6px;
+  width: 25px;
+  height: 25px;
+  margin-left: 3px;
 }
-/* Keep black pieces readable on the dark panels */
-body:not([data-bg="light"]) .captured img {
-  filter: drop-shadow(0 0 1.5px rgba(243, 234, 216, 0.75));
+.captured img:first-child { margin-left: 0; }
+.captured img.stacked { margin-left: -13px; }
+/* Keep the black pieces readable on the dark panels (same outline as the colour pawn) */
+body:not([data-bg="light"]) .captured img[src*="/b"] {
+  filter: drop-shadow(0 0 1.2px rgba(244, 234, 217, 0.9));
 }
 .captured img + .material-lead,
 .material-lead {
@@ -1920,18 +1922,6 @@ body[data-bg="light"] .logo { color: #7d5531; }
   .home-footer { position: static; margin-top: 2rem; }
 }
 
-/* Moves written the way chess sites show them: a small piece icon instead of N, B, R, Q, K */
-.san-piece { white-space: nowrap; }
-.san-piece img {
-  width: 1.15em;
-  height: 1.15em;
-  vertical-align: -0.22em;
-  margin-right: 0.02em;
-}
-body:not([data-bg="light"]) .san-piece img[src*="/b"] {
-  filter: drop-shadow(0 0 1px rgba(244, 234, 217, 0.85));
-}
-
 /* "?" next to the engine title, and the short guide it opens */
 .engine-title { display: inline-flex; align-items: center; gap: 0.45rem; }
 .help-btn {
@@ -1951,6 +1941,22 @@ body:not([data-bg="light"]) .san-piece img[src*="/b"] {
 }
 .help-btn:hover,
 .help-btn[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
+.details-btn {
+  appearance: none;
+  margin-top: 0.4rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.82rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.details-btn:hover { color: var(--accent); }
+.engine-details { margin-top: 0.65rem; }
+.engine-details[hidden] { display: none; }
 .engine-help {
   margin: 0.6rem 0 0;
   padding: 0.6rem 0.75rem;
@@ -2002,4 +2008,26 @@ body.hide-legal .square.legal::after { display: none; }
   color: var(--on-accent);
 }
 #engine-panel .create-btn { margin-top: 0.2rem; }
-.san-letter { font-size: 0; }
+
+/* Phones: smaller, tighter captured pieces so a long game's worth still fits */
+@media (max-width: 480px) {
+  .captured img { width: 20px; height: 20px; margin-left: 2px; }
+  .captured img.stacked { margin-left: -12px; }
+}
+/* If space runs out, the captured pieces give way before the player's name */
+.player-info .player-name { flex: 0 0 auto; }
+.player-info .captured { flex: 0 1 auto; min-width: 0; }
+
+.captured { overflow: visible; }
+.captured-pieces {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  padding-right: 2px;
+}
+.captured .material-lead { flex: 0 0 auto; }
+@media (max-width: 480px) {
+  .player-info { gap: 0.45rem; }
+  .captured img.stacked { margin-left: -14px; }
+}
