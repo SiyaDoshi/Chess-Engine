@@ -31,6 +31,14 @@ export function undoMove(chess) {
   chess._undoMove();
 }
 
+/**
+ * A 64-bit Zobrist hash of the position (BigInt), kept up to date by
+ * chess.js as moves are made and undone. Used as the transposition-table key.
+ */
+export function positionKey(chess) {
+  return chess._hash;
+}
+
 /** Number of moves played so far (used to unwind an interrupted search). */
 export function historyLength(chess) {
   return chess._history.length;
