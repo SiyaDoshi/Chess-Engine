@@ -217,9 +217,9 @@ body.view
 
 .logo-text {
   display: inline-block;
-  animation: logo-rise 0.8s ease-out 0.9s both;
+  animation: logo-rise 0.7s ease-out 0.35s both;
 }
-.logo-text:last-child { animation-delay: 1.1s; }
+.logo-text:last-child { animation-delay: 0.5s; }
 
 .logo-i {
   position: relative;
@@ -239,46 +239,107 @@ body.view
   transform-origin: 50% 100%;
 }
 
+/*
+ * The kick (times from when the page is ready):
+ *  0.35s  letters and the pawn rise into place
+ *  1.7s   the knight appears beyond the "t" and crouches
+ *  2.3s   it leaps in a high arc and smashes into the pawn at 2.95s
+ *  2.95s  the pawn is sent spinning off; the title shakes; a ring of
+ *         dust bursts out; the knight lands with a squash and settles
+ */
 .logo-pawn {
   animation:
-    logo-rise 0.8s ease-out 1s both,
-    logo-pawn-falls 1s ease-in 3.55s forwards;
+    logo-rise 0.7s ease-out 0.4s both,
+    logo-pawn-struck 1.1s cubic-bezier(0.2, 0.7, 0.4, 1) 2.95s forwards;
 }
 
 .logo-knight {
   opacity: 0;
   animation:
-    logo-knight-jumps 1.5s cubic-bezier(0.3, 0, 0.5, 1) 2.2s forwards,
-    logo-knight-lands 0.4s ease-out 3.7s;
+    logo-knight-leaps 1.25s linear 1.7s forwards,
+    logo-knight-lands 0.45s ease-out 2.95s;
 }
+
+.logo { animation: logo-shake 0.35s ease-out 2.95s; }
+
+/* Dust ring at the moment of impact */
+.logo-i::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -0.02em;
+  width: 1.4em;
+  height: 0.32em;
+  margin-left: -0.7em;
+  border-radius: 50%;
+  border: 0.035em solid rgba(222, 176, 113, 0.75);
+  opacity: 0;
+  transform: scale(0.2);
+  pointer-events: none;
+  animation: logo-dust 0.6s ease-out 2.95s;
+}
+
+/* Until the page has finished loading, everything waits */
+.logo,
+.logo-text,
+.logo-i img,
+.logo-i::after { animation-play-state: paused; }
+body.home-ready .logo,
+body.home-ready .logo-text,
+body.home-ready .logo-i img,
+body.home-ready .logo-i::after { animation-play-state: running; }
 
 @keyframes logo-rise {
   from { opacity: 0; transform: translateY(0.12em); }
   to { opacity: 1; transform: none; }
 }
 
-/* Up, across, then down onto the pawn: a knight's L */
-@keyframes logo-knight-jumps {
-  0% { opacity: 0; transform: translate(1.3em, -0.15em) scale(0.85); }
-  15% { opacity: 1; transform: translate(1.3em, -0.15em) scale(0.85); }
-  45% { opacity: 1; transform: translate(1.15em, -1.05em) scale(0.9); }
-  75% { opacity: 1; transform: translate(0.2em, -0.95em) scale(0.95); }
-  100% { opacity: 1; transform: none; }
+/* Appear past the "t", crouch, then a high leap that comes down hard on the pawn */
+@keyframes logo-knight-leaps {
+  0% { opacity: 0; transform: translate(1.45em, 0) scale(0.9); animation-timing-function: ease-out; }
+  16% { opacity: 1; transform: translate(1.45em, 0) scale(0.9); animation-timing-function: ease-in-out; }
+  40% { opacity: 1; transform: translate(1.5em, 0.03em) scale(0.95, 0.8) rotate(10deg); animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1); }
+  72% { opacity: 1; transform: translate(0.75em, -1.15em) scale(1.02) rotate(-12deg); animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.5); }
+  100% { opacity: 1; transform: translate(0, 0) rotate(-4deg); }
 }
 
 @keyframes logo-knight-lands {
-  0% { transform: none; }
-  40% { transform: translateY(0.05em) scaleY(0.94); }
+  0% { transform: rotate(-4deg); }
+  30% { transform: translateY(0.02em) scale(1.12, 0.84); }
+  65% { transform: translateY(-0.05em) scale(0.96, 1.06); }
   100% { transform: none; }
 }
 
-@keyframes logo-pawn-falls {
+@keyframes logo-pawn-struck {
   0% { opacity: 1; transform: none; }
-  60% { opacity: 1; transform: translate(-0.2em, 0.02em) rotate(-75deg); }
-  100% { opacity: 0; transform: translate(-0.55em, 0.3em) rotate(-95deg); }
+  45% { opacity: 1; transform: translate(-1.5em, -0.85em) rotate(-260deg) scale(0.9); }
+  100% { opacity: 0; transform: translate(-2.3em, 0.9em) rotate(-470deg) scale(0.7); }
 }
 
+@keyframes logo-shake {
+  0%, 100% { transform: none; }
+  20% { transform: translate(-0.03em, 0.015em); }
+  40% { transform: translate(0.025em, -0.01em); }
+  60% { transform: translate(-0.015em, 0.008em); }
+  80% { transform: translate(0.008em, 0); }
+}
+
+@keyframes logo-dust {
+  0% { opacity: 0.9; transform: scale(0.2); }
+  100% { opacity: 0; transform: scale(1.25); }
+}
+
+/* The whole home page appears at once, when the board and its pieces are ready */
+body.view-home .home-row,
+body.view-home .home-footer {
+  transition: opacity 0.35s ease-out;
+}
+body.view-home:not(.home-ready) .home-row,
+body.view-home:not(.home-ready) .home-footer { opacity: 0; }
+
 @media (prefers-reduced-motion: reduce) {
+  .logo,
+  .logo-i::after,
   .logo-text,
   .logo-pawn,
   .logo-knight { animation: none; }
@@ -1858,3 +1919,87 @@ body[data-bg="light"] .logo { color: #7d5531; }
   .mode-secondary .mode-icon { display: inline-flex; }
   .home-footer { position: static; margin-top: 2rem; }
 }
+
+/* Moves written the way chess sites show them: a small piece icon instead of N, B, R, Q, K */
+.san-piece { white-space: nowrap; }
+.san-piece img {
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.22em;
+  margin-right: 0.02em;
+}
+body:not([data-bg="light"]) .san-piece img[src*="/b"] {
+  filter: drop-shadow(0 0 1px rgba(244, 234, 217, 0.85));
+}
+
+/* "?" next to the engine title, and the short guide it opens */
+.engine-title { display: inline-flex; align-items: center; gap: 0.45rem; }
+.help-btn {
+  appearance: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.help-btn:hover,
+.help-btn[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
+.engine-help {
+  margin: 0.6rem 0 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  background: var(--panel-2);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+.engine-help div { display: grid; grid-template-columns: 4.7rem 1fr; gap: 0.5rem; }
+.engine-help div + div { margin-top: 0.35rem; }
+.engine-help dt { color: var(--text); font-weight: 600; }
+.engine-help dd { margin: 0; color: var(--muted); }
+.engine-help[hidden] { display: none; }
+
+/* Settings: hide the dots that show where a picked-up piece can go */
+body.hide-legal .square.legal::after { display: none; }
+
+/* Play the engine panel: segmented choices for difficulty and colour */
+.choice-label {
+  margin: 0.2rem 0 0.4rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.choice-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.35rem;
+  margin-bottom: 0.9rem;
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-2);
+}
+.choice-row button {
+  appearance: none;
+  padding: 0.5rem 0.4rem;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.choice-row button:hover { color: var(--text); }
+.choice-row button[aria-checked="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+#engine-panel .create-btn { margin-top: 0.2rem; }
+.san-letter { font-size: 0; }
