@@ -9,6 +9,22 @@
 }
 
 @font-face {
+  font-family: "Fraunces";
+  src: url("/fonts/fraunces-latin-700-normal.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Fraunces";
+  src: url("/fonts/fraunces-latin-600-normal.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "Outfit";
   src: url("/fonts/outfit-latin-700-normal.woff2") format("woff2");
   font-weight: 700;
@@ -35,7 +51,18 @@
   --clock-active: var(--accent);
   --title-filter: brightness(0) invert(92%) sepia(12%);
   --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-brand: "Outfit", "Inter", system-ui, sans-serif;
+  --font-brand: "Fraunces", Georgia, "Times New Roman", serif;
+  /* Highlights that lift the chocolate base */
+  --gold: #e8bd78;
+  --gold-soft: rgba(232, 189, 120, 0.18);
+  --sage: #a9bf98;
+  --sage-soft: rgba(169, 191, 152, 0.16);
+  --glass: linear-gradient(180deg, rgba(255, 244, 225, 0.055) 0%, rgba(255, 244, 225, 0.012) 100%);
+  --lift: inset 0 1px 0 rgba(255, 240, 215, 0.07), 0 10px 28px rgba(0, 0, 0, 0.28);
+  --page-light:
+    radial-gradient(1200px 680px at 50% -14%, rgba(232, 189, 120, 0.24), transparent 64%),
+    radial-gradient(1000px 700px at -8% 110%, rgba(147, 168, 131, 0.24), transparent 62%),
+    radial-gradient(820px 600px at 108% 70%, rgba(192, 138, 91, 0.16), transparent 64%);
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23a89a8a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --light-sq: #e7ebd8; /* sage green: the default board */
   --dark-sq: #93a883;
@@ -54,6 +81,15 @@ body[data-bg="light"] {
   --on-accent: #ffffff;
   --error: #b91c1c;
   --title-filter: brightness(0.15) contrast(1.15);
+  --glass: linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 100%);
+  --lift: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 8px 22px rgba(80, 55, 30, 0.1);
+  --gold: #b07a2e;
+  --gold-soft: rgba(176, 122, 46, 0.14);
+  --sage: #5f7a4e;
+  --sage-soft: rgba(95, 122, 78, 0.12);
+  --page-light:
+    radial-gradient(1100px 620px at 50% -12%, rgba(232, 189, 120, 0.22), transparent 62%),
+    radial-gradient(900px 640px at -6% 108%, rgba(147, 168, 131, 0.18), transparent 60%);
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%236b5e52' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
@@ -1577,3 +1613,154 @@ body:not([data-bg="light"]) .captured img {
   .top-nav > .nav-field > span { display: none; }
   .top-nav > .nav-field select { width: 100%; }
 }
+
+
+/* ========== ATMOSPHERE ==========
+ * Light, depth and a few brighter accents so the warm-dark theme feels
+ * open instead of flat: a soft gold glow from above, a sage glow from
+ * below (picking up the board), glassy panels and a glowing title.
+ * Visual properties only; layout lives in the rules above.
+ */
+body {
+  background: var(--page-light), var(--bg);
+  background-attachment: fixed;
+}
+
+/* Title: warm gradient lettering with a soft halo behind it */
+.home-brand::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(620px, 90vw);
+  height: 180%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side, rgba(232, 189, 120, 0.2), transparent);
+  filter: blur(6px);
+  pointer-events: none;
+  z-index: -1;
+}
+.logo {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.logo-text {
+  background: linear-gradient(180deg, #fff8ea 10%, #f1d6a6 60%, #d9a866 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 14px rgba(232, 189, 120, 0.28));
+}
+.logo-i img {
+  filter: drop-shadow(0 2px 10px rgba(232, 189, 120, 0.35));
+}
+body[data-bg="light"] .logo-text {
+  background-image: linear-gradient(180deg, #4a3423 10%, #7a5232 70%, #a8743d 100%);
+  filter: none;
+}
+
+/* Glassy panels with a lit top edge */
+.mode-card,
+.panel-card,
+.top-nav,
+.player-bar {
+  background: var(--glass), var(--panel);
+  box-shadow: var(--lift);
+}
+.mode-card {
+  border-color: rgba(232, 189, 120, 0.22);
+  box-shadow: var(--lift), 0 0 0 1px rgba(232, 189, 120, 0.05), 0 30px 60px rgba(0, 0, 0, 0.25);
+}
+.mode-card h2 {
+  font-family: var(--font-brand);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Main button: caramel to gold, with a little shine */
+.menu-actions .mode-primary,
+.primary-btn {
+  background: linear-gradient(135deg, #d9a26b 0%, #c08a5b 55%, #a8744a 100%);
+  border-color: rgba(255, 220, 170, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 240, 215, 0.45), 0 8px 22px rgba(192, 138, 91, 0.28);
+}
+.menu-actions .mode-primary:hover,
+.primary-btn:hover {
+  background: linear-gradient(135deg, #e3ae78 0%, #c99463 55%, #b07c50 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 240, 215, 0.5), 0 10px 28px rgba(192, 138, 91, 0.38);
+}
+.menu-actions .mode-secondary button .mode-icon { color: var(--sage); }
+
+/* Boards float on a soft sage glow */
+.home-board-wrap {
+  box-shadow:
+    0 1px 0 rgba(255, 245, 225, 0.3) inset,
+    0 18px 40px rgba(0, 0, 0, 0.4),
+    0 40px 80px rgba(0, 0, 0, 0.3),
+    0 0 70px rgba(147, 168, 131, 0.22);
+}
+.board-wrap {
+  box-shadow: 0 0 0 1px rgba(255, 245, 225, 0.08), 0 18px 44px rgba(0, 0, 0, 0.42), 0 0 60px var(--sage-soft);
+}
+
+/* Whose turn: the active player glows gold, with a gold clock */
+.player-bar.active {
+  border-color: rgba(232, 189, 120, 0.7);
+  box-shadow: var(--lift), 0 0 0 3px var(--gold-soft), 0 0 26px var(--gold-soft);
+}
+.player-bar.active .clock-time {
+  background: linear-gradient(180deg, #f0c98a, #d9a866);
+  color: #2a1d10;
+  box-shadow: inset 0 1px 0 rgba(255, 250, 235, 0.6);
+}
+
+/* Status line: a coloured dot shows at a glance whose turn it is */
+.status {
+  font-family: var(--font-brand);
+  font-weight: 600;
+  font-size: 1.2rem;
+  letter-spacing: 0.005em;
+}
+.status-card {
+  border-left: 3px solid var(--gold);
+}
+
+/* Section titles get a small gold marker */
+.card-title,
+.engine-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--gold);
+  letter-spacing: 0.08em;
+}
+.card-title::before,
+.engine-title::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  transform: rotate(45deg);
+  background: currentColor;
+  opacity: 0.85;
+}
+.engine-eval { color: var(--sage); }
+.move-san.latest { color: var(--gold); }
+.mode-pill {
+  background: var(--sage-soft);
+  color: var(--sage);
+  border: 1px solid rgba(169, 191, 152, 0.3);
+}
+
+/* Buttons lift a little on hover */
+.play-controls button,
+.nav-btn,
+.small-btn {
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.play-controls button:hover:not(:disabled),
+.nav-btn:hover {
+  transform: translateY(-1px);
+}
+
+.home-footer a:hover { color: var(--gold); }
