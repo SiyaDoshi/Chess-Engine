@@ -32,7 +32,7 @@ const player = async () => {
 
 before(async () => {
   const cwd = fileURLToPath(new URL('..', import.meta.url));
-  server = spawn(process.execPath, ['server.js'], { cwd, env: { ...process.env, PORT: String(PORT) }, stdio: 'ignore' });
+  server = spawn(process.execPath, ['server.js'], { cwd, env: { ...process.env, PORT: String(PORT), MAX_GAMES: '10', EMPTY_GAME_GRACE_MS: '1500' }, stdio: 'ignore' });
   for (let i = 0; i < 50 && !(await alive()); i++) await sleep(100);
 });
 
@@ -57,9 +57,11 @@ test('server: a full game follows the rules', async () => {
   assert.ok(first.ok);
   assert.match(first.state.pgn, /e4/, 'state carries the move history');
 
-  const watcher = await player();
-  assert.equal((await call(watcher, 'joinGame', { gameId: created.gameId })).color, 'spectator');
-  assert.equal((await call(watcher, 'makeMove', { from: 'e7', to: 'e5' })).ok, false, 'spectators cannot move');
+  const stranger = await player();
+  const refused = await call(stranger, 'joinGame', { gameId: created.gameId });
+  assert.equal(refused.ok, false, 'a third person cannot join or watch');
+  assert.equal(refused.full, true);
+  assert.equal((await call(stranger, 'makeMove', { from: 'e7', to: 'e5' })).ok, false, 'and cannot move');
 
   await call(black, 'makeMove', { from: 'g7', to: 'g5' });
   await call(white, 'makeMove', { from: 'b1', to: 'c3' });
@@ -110,12 +112,56 @@ test('server: players can name themselves; names are cleaned and shared', async 
   assert.equal(named.name, 'Siya bDoshi/b and a', 'tags, control characters and extra length removed');
   assert.equal((await seen).blackName, named.name, 'the other player sees it');
 
-  const watcher = await player();
-  await call(watcher, 'joinGame', { gameId: created.gameId });
-  assert.equal((await call(watcher, 'setName', { name: 'Spectator' })).ok, false, 'spectators cannot name a seat');
+  const stranger = await player();
+  await call(stranger, 'joinGame', { gameId: created.gameId });
+  assert.equal((await call(stranger, 'setName', { name: 'Stranger' })).ok, false, 'only the two players can set names');
   assert.equal((await call(white, 'setName', { name: 42 })).name, '', 'non-text names are ignored');
   white.emit('setName', null, () => {});
   white.emit('setName', { name: 'x' }); // no reply callback
   await sleep(200);
   assert.ok(await alive());
+});
+
+test('server: a player who reconnects or refreshes gets their own seat back', async () => {
+  const white = await player();
+  const created = await call(white, 'createGame', { timeControl: '5+0' });
+  assert.match(created.token, /^[0-9a-f]{32}$/, 'the creator gets a private seat key');
+  const black = await player();
+  const joined = await call(black, 'joinGame', { gameId: created.gameId });
+  await call(white, 'makeMove', { from: 'e2', to: 'e4' });
+
+  // Black's connection drops; a new connection with the key takes the seat back
+  black.close();
+  await sleep(200);
+  const black2 = await player();
+  const back = await call(black2, 'joinGame', { gameId: created.gameId, token: joined.token });
+  assert.equal(back.color, 'b');
+  assert.equal(back.rejoined, true);
+  assert.equal(back.state.blackConnected, true);
+  assert.ok((await call(black2, 'makeMove', { from: 'e7', to: 'e5' })).ok, 'and can keep playing');
+
+  // White refreshes while the old connection is still open: the new one replaces it
+  const white2 = await player();
+  const again = await call(white2, 'joinGame', { gameId: created.gameId, token: created.token });
+  assert.equal(again.color, 'w');
+  await sleep(200);
+  assert.equal(white.connected, false, 'the old connection is closed');
+  assert.ok((await call(white2, 'makeMove', { from: 'g1', to: 'f3' })).ok);
+  assert.equal((await call(white2, 'makeMove', { from: 'a2', to: 'a3' })).ok, false, 'still one move at a time');
+
+  // A wrong key doesn't steal a seat
+  const thief = await player();
+  const stolen = await call(thief, 'joinGame', { gameId: created.gameId, token: 'f'.repeat(32) });
+  assert.equal(stolen.ok, false);
+
+  // Both leave: the game waits a little for them, then is removed
+  white2.close();
+  black2.close();
+  await sleep(300);
+  const early = await player();
+  assert.equal((await call(early, 'joinGame', { gameId: created.gameId, token: created.token })).color, 'w', 'kept for a short while');
+  early.close();
+  await sleep(1900);
+  const late = await player();
+  assert.equal((await call(late, 'joinGame', { gameId: created.gameId, token: created.token })).ok, false, 'removed after the grace period');
 });
