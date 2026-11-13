@@ -58,7 +58,7 @@ const promotionEl = document.getElementById('promotion');
 const promotionChoicesEl = promotionEl.querySelector('.promotion-choices');
 const capturedByWhiteEl = document.getElementById('captured-by-white');
 const capturedByBlackEl = document.getElementById('captured-by-black');
-const moveListEmptyEl = document.getElementById('move-list-empty');
+const movesCardEl = document.querySelector('.moves-card');
 const evalBarEl = document.getElementById('eval-bar');
 const engineEvalEl = document.getElementById('engine-eval');
 const engineDepthEl = document.getElementById('engine-depth');
@@ -693,7 +693,7 @@ function renderMoveList(game) {
   }
   moveListEl.replaceChildren(...items);
   moveListEl.classList.toggle('reviewing', reviewPly !== null);
-  moveListEmptyEl.hidden = sans.length > 0;
+  movesCardEl.hidden = sans.length === 0; // the card appears with the first move
   renderReviewBar(sans);
   // Follow the newest move, or keep the move being looked at in view
   const viewing = moveListEl.querySelector('.viewing');
@@ -1425,7 +1425,7 @@ function enterOnline(gameId, color, state) {
   else if (color === 'b') youAreEl.textContent = 'You are Black';
   else youAreEl.textContent = 'Spectating';
 
-  waitText.textContent = 'Waiting for your friend to join';
+  waitText.textContent = 'Waiting for opponent to join';
   playControls.hidden = true;
   onlineNames = { w: '', b: '' };
   applyOnlineState(state);
@@ -1463,7 +1463,7 @@ function applyOnlineState(state) {
   const missing = !state.whiteConnected ? 'White' : 'Black';
   const friend = onlineNames[myColor === 'w' ? 'b' : 'w'] || 'Your friend';
   if (!both) {
-    if (!started) waitText.textContent = 'Waiting for your friend to join';
+    if (!started) waitText.textContent = 'Waiting for opponent to join';
     else if (spectating) waitText.textContent = `${missing} left · waiting for them to come back`;
     else waitText.textContent = `${friend} left. Clocks are paused until they return.`;
   }

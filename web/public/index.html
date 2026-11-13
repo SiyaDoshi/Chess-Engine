@@ -52,10 +52,7 @@
         </div>
         <div id="home-main">
         <h2>Play</h2>
-          <label class="name-field">
-            <span>Your name</span>
-            <input id="home-name" class="my-name" type="text" maxlength="20" placeholder="Optional" autocomplete="nickname" spellcheck="false" />
-          </label>
+          <input id="home-name" class="my-name name-input-home" type="text" maxlength="20" placeholder="Your name" aria-label="Your name" autocomplete="nickname" spellcheck="false" />
         <div class="menu-actions">
           <button type="button" data-mode="local-ai" class="mode-primary">
             <span class="mode-icon" aria-hidden="true">
@@ -95,14 +92,8 @@
             Back
           </button>
           <h2>Two player</h2>
-          <label class="name-field">
-            <span>White</span>
-            <input id="pvp-name-w" type="text" maxlength="20" placeholder="White" spellcheck="false" />
-          </label>
-          <label class="name-field">
-            <span>Black</span>
-            <input id="pvp-name-b" type="text" maxlength="20" placeholder="Black" spellcheck="false" />
-          </label>
+          <input id="pvp-name-w" class="name-input-home" type="text" maxlength="20" placeholder="White player's name" aria-label="White player's name" spellcheck="false" />
+          <input id="pvp-name-b" class="name-input-home" type="text" maxlength="20" placeholder="Black player's name" aria-label="Black player's name" spellcheck="false" />
           <button type="button" data-mode="local-pvp" class="primary-btn create-btn">Start game</button>
         </div>
         <div id="online-panel" class="online-panel" hidden>
@@ -111,10 +102,7 @@
             Back
           </button>
           <h2>Play online</h2>
-          <label class="name-field">
-            <span>Your name</span>
-            <input id="online-name" class="my-name" type="text" maxlength="20" placeholder="Optional" autocomplete="nickname" spellcheck="false" />
-          </label>
+          <input id="online-name" class="my-name name-input-home" type="text" maxlength="20" placeholder="Your name" aria-label="Your name" autocomplete="nickname" spellcheck="false" />
           <button type="button" data-mode="online-create" class="primary-btn create-btn">Create a game</button>
           <p class="create-note">You'll get a link and a code to send your friend.</p>
           <form id="join-form" class="join-form" autocomplete="off" novalidate>
@@ -282,7 +270,7 @@
             <strong id="room-code"></strong>
             <button type="button" id="btn-copy-code" class="small-btn">Copy code</button>
           </div>
-          <p id="wait-msg" class="wait-msg"><span id="wait-text">Waiting for your friend to join</span></p>
+          <p id="wait-msg" class="wait-msg"><span id="wait-text">Waiting for opponent to join</span></p>
         </div>
 
         <div id="engine-card" class="panel-card engine-card" hidden>
@@ -305,7 +293,6 @@
             <button type="button" id="btn-live" class="small-btn">Back to game</button>
           </div>
           <ol id="move-list" class="move-list" aria-label="Moves played"></ol>
-          <p id="move-list-empty" class="muted">No moves yet</p>
         </div>
 
         <div id="play-controls" class="play-controls" hidden>
