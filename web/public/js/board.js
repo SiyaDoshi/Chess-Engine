@@ -41,6 +41,7 @@ class ChessBoard {
   constructor(root, options = {}) {
     this.root = root;
     this.onMove = options.onMove || (() => {});
+    this.onStuck = options.onStuck || (() => {}); // a piece with no legal moves was picked
     this.onRender = options.onRender || null;
     this.chess = null;
     this.orientation = 'w';
@@ -303,6 +304,7 @@ class ChessBoard {
     const moves = this.chess.moves({ square, verbose: true });
     this.legalTargets = moves.map((m) => m.to);
     this.render();
+    if (moves.length === 0) this.onStuck(square);
   }
 }
 
