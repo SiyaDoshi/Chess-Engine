@@ -79,6 +79,7 @@ let chess = null;
 /** @type {'w'|'b'|'spectator'|null} */
 let myColor = null;
 let socket = null;
+let connectionLost = false; // set while the online connection is down
 let onlineGameId = null;
 let aiThinking = false;
 /** Bumped whenever a pending engine reply should be ignored (undo, reset, home). */
@@ -713,6 +714,7 @@ function goHome() {
     socket.disconnect();
     socket = null;
   }
+  connectionLost = false;
   mode = 'menu';
   chess = null;
   myColor = null;
@@ -1019,6 +1021,12 @@ async function handleBoardMove({ from, to }) {
       return;
     }
     socket.emit('makeMove', { from, to, promotion }, (res) => {
+      if (!res.ok && res.rejoin) {
+        // Our connection had been replaced: get the seat back, then the player retries
+        board.setGame(chess);
+        rejoinOnlineGame();
+        return;
+      }
       if (!res.ok) {
         showError(gameError, res.error);
         if (res.state) applyOnlineState(res.state);
@@ -1077,9 +1085,66 @@ async function runAiTurn() {
   if (!chess.isGameOver() && !timedOut) board.setInteractive(true);
 }
 
+/*
+ * Seat keys: the server gives each player a private key for their seat.
+ * This tab keeps it (sessionStorage), so a refresh or a dropped connection
+ * puts you straight back in your seat. A copy shared by the browser
+ * (localStorage) lets you come back after closing the tab; the server only
+ * accepts that copy while the seat is empty, so a second tab in the same
+ * browser can still join as the other player.
+ */
+// A function declaration (not a const) so it works for the join that runs while the page loads
+function seatKey(gameId) {
+  return `gambit-seat-${gameId}`;
+}
+function seatKeys(gameId) {
+  const read = (store) => { try { return store.getItem(seatKey(gameId)); } catch { return null; } };
+  return { token: read(sessionStorage), backupToken: read(localStorage) };
+}
+function saveSeat(gameId, token) {
+  if (!token) return;
+  for (const store of [sessionStorage, localStorage]) {
+    try { store.setItem(seatKey(gameId), token); } catch { /* private mode */ }
+  }
+}
+
+
+/** Rejoin the current online game after the connection came back. */
+function rejoinOnlineGame() {
+  if (mode !== 'online' || !onlineGameId || !socket) return;
+  const gameId = onlineGameId;
+  socket.emit('joinGame', { gameId, ...seatKeys(gameId) }, (res) => {
+    if (mode !== 'online' || onlineGameId !== gameId) return;
+    if (!res.ok) {
+      showError(gameError, res.full
+        ? 'Your seat was taken by another device. Start a new game to keep playing.'
+        : 'This game has ended on the server. Start a new one from Home.');
+      board.setInteractive(false);
+      return;
+    }
+    connectionLost = false;
+    showError(gameError, null);
+    saveSeat(gameId, res.token);
+    myColor = res.color;
+    syncOnlineGame(res.state);
+    board.setGame(chess);
+    applyOnlineState(res.state);
+  });
+}
+
 function ensureSocket() {
-  if (socket && socket.connected) return socket;
+  if (socket) return socket;
   socket = io();
+  socket.on('disconnect', (reason) => {
+    if (reason === 'io client disconnect' || mode !== 'online' || gameOver) return;
+    connectionLost = true;
+    board.setInteractive(false);
+    statusEl.textContent = 'Connection lost · reconnecting…';
+  });
+  // Socket.IO reconnects by itself; the new connection then takes our seat back
+  socket.on('connect', () => {
+    if (connectionLost) rejoinOnlineGame();
+  });
   socket.on('moveMade', ({ state }) => {
     if (!chess) chess = new Chess();
     syncOnlineGame(state);
@@ -1100,24 +1165,38 @@ function createOnlineGame() {
       showError(menuError, res.error);
       return;
     }
+    saveSeat(res.gameId, res.token);
     enterOnline(res.gameId, res.color, res.state);
     window.history.pushState({}, '', res.sharePath);
   });
 }
 
+/** Home-page notice when a link or code can't be used. */
+function showLinkNotice(full) {
+  const notice = document.getElementById('link-notice');
+  notice.querySelector('.link-notice-title').textContent = full
+    ? 'That game already has two players'
+    : "That game isn't available";
+  notice.querySelector('.link-notice-text').textContent = full
+    ? 'Games are private once both players have joined. Start your own game below and send a friend the link or code.'
+    : 'The code or link may be wrong, or the game ended and was closed. Start a new one below and send your friend the fresh link.';
+  notice.hidden = false;
+}
+
 function joinOnlineGame(gameId) {
   showError(menuError, null);
   const s = ensureSocket();
-  s.emit('joinGame', { gameId }, (res) => {
+  const id = String(gameId).trim().toLowerCase();
+  s.emit('joinGame', { gameId: id, ...seatKeys(id) }, (res) => {
     if (!res.ok) {
-      // Dead or mistyped link: explain it on the home page and drop /g/... from the URL
-      document.getElementById('link-notice').hidden = false;
+      // Full game, dead or mistyped link: explain it on the home page and drop /g/... from the URL
+      showLinkNotice(res.full);
       window.history.replaceState({}, '', '/');
       showHome();
       return;
     }
+    saveSeat(res.gameId, res.token);
     enterOnline(res.gameId, res.color, res.state);
-    if (res.note) showError(gameError, res.note);
   });
 }
 
@@ -1211,6 +1290,31 @@ function applyOnlineState(state) {
     board.setInteractive(canMove);
   }
 }
+
+// Join by room code from the home page
+document.getElementById('join-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const input = document.getElementById('join-code');
+  const code = input.value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (!code) {
+    input.focus();
+    return;
+  }
+  input.value = '';
+  window.history.pushState({}, '', `/g/${code}`);
+  joinOnlineGame(code);
+});
+
+document.getElementById('btn-copy-code').addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  try {
+    await navigator.clipboard.writeText(roomCodeEl.textContent);
+    btn.textContent = 'Copied!';
+  } catch {
+    btn.textContent = 'Select it to copy';
+  }
+  setTimeout(() => { btn.textContent = 'Copy code'; }, 1200);
+});
 
 async function copyShareLink() {
   try {
