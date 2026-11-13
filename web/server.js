@@ -142,13 +142,31 @@ function emitState(gameId) {
   io.to(gameId).emit('playerUpdate', publicState(game, gameId));
 }
 
+/**
+ * Wrap a socket event handler so bad input can never crash the server.
+ * Clients may send no data, the wrong type, or no reply callback; the
+ * handler always gets an object and a callable reply, and any unexpected
+ * error is logged and answered instead of taking the whole process down.
+ */
+function safe(event, handler) {
+  return (payload, ack) => {
+    const reply = typeof ack === 'function' ? ack : typeof payload === 'function' ? payload : () => {};
+    const data = payload && typeof payload === 'object' ? payload : {};
+    try {
+      handler(data, reply);
+    } catch (err) {
+      console.error(`Error in ${event}:`, err);
+      reply({ ok: false, error: 'Something went wrong. Please try again.' });
+    }
+  };
+}
+
+const SQUARE = /^[a-h][1-8]$/;
+
 io.on('connection', (socket) => {
   console.log('Connected:', socket.id);
 
-  socket.on('createGame', (payload, ack) => {
-    const cb = typeof payload === 'function' ? payload : ack;
-    const opts = typeof payload === 'function' ? {} : (payload || {});
-
+  socket.on('createGame', safe('createGame', (opts, cb) => {
     if (games.size >= MAX_GAMES) {
       cb({ ok: false, error: 'Server full — only 3 games allowed at once. Try later.' });
       return;
@@ -177,9 +195,9 @@ io.on('connection', (socket) => {
       sharePath: `/g/${id}`,
       state: publicState(games.get(id), id),
     });
-  });
+  }));
 
-  socket.on('setTimeControl', ({ timeControl }, ack) => {
+  socket.on('setTimeControl', safe('setTimeControl', ({ timeControl }, ack) => {
     const id = socket.data.gameId;
     const game = games.get(id);
     if (!game) {
@@ -199,10 +217,10 @@ io.on('connection', (socket) => {
     const state = publicState(game, id);
     io.to(id).emit('playerUpdate', state);
     ack?.({ ok: true, state });
-  });
+  }));
 
-  socket.on('joinGame', ({ gameId }, ack) => {
-    const id = (gameId || '').toLowerCase();
+  socket.on('joinGame', safe('joinGame', ({ gameId }, ack) => {
+    const id = typeof gameId === 'string' ? gameId.trim().toLowerCase() : '';
     const game = games.get(id);
 
     if (!game) {
@@ -244,9 +262,14 @@ io.on('connection', (socket) => {
       state: publicState(game, id),
       note: 'Both seats taken — you are spectating.',
     });
-  });
+  }));
 
-  socket.on('makeMove', ({ from, to, promotion }, ack) => {
+  socket.on('makeMove', safe('makeMove', ({ from, to, promotion }, ack) => {
+    if (!SQUARE.test(String(from)) || !SQUARE.test(String(to))) {
+      ack({ ok: false, error: 'Illegal move.' });
+      return;
+    }
+    const promoteTo = ['q', 'r', 'b', 'n'].includes(promotion) ? promotion : 'q';
     const id = socket.data.gameId;
     const game = games.get(id);
     if (!game) {
@@ -278,7 +301,7 @@ io.on('connection', (socket) => {
 
     let move;
     try {
-      move = game.chess.move({ from, to, promotion: promotion || 'q' });
+      move = game.chess.move({ from, to, promotion: promoteTo });
     } catch {
       move = null;
     }
@@ -302,7 +325,7 @@ io.on('connection', (socket) => {
     const state = publicState(game, id);
     io.to(id).emit('moveMade', { move, state });
     ack({ ok: true, move, state });
-  });
+  }));
 
   socket.on('disconnect', () => {
     const id = socket.data.gameId;
