@@ -292,7 +292,9 @@ timerSelect.addEventListener('change', () => {
   const tc = timerSelect.value;
   localStorage.setItem('chess-timer', tc);
   if (mode === 'local-pvp' || mode === 'local-ai') {
-    applyLocalPreset(tc, true);
+    // A new time control mid-game would refill both clocks, so it starts a new game.
+    if (chess && chess.history().length > 0) resetLocal();
+    else applyLocalPreset(tc, true);
     return;
   }
   if (mode === 'online' && myColor === 'w' && lobbyPanel && !lobbyPanel.hidden) {
@@ -669,8 +671,8 @@ function showEngineInfo(result, fenBefore) {
   engineNodesEl.textContent = result.nodes.toLocaleString('en-US');
   engineTimeEl.textContent = `${(result.timeMs / 1000).toFixed(2)}s`;
 
-  if (result.random) {
-    engineLineEl.textContent = 'Played a random move (Easy)';
+  if (result.mistake) {
+    engineLineEl.textContent = 'Played a looser move on purpose (Easy)';
     return;
   }
   const replay = new Chess(fenBefore);
@@ -1166,10 +1168,13 @@ function applyOnlineState(state) {
   const both = state.whiteConnected && state.blackConnected;
   updateModeUI({ onlineLobby: !both, onlinePlaying: both });
 
+  const started = !!chess && chess.history().length > 0;
+  const spectating = myColor !== 'w' && myColor !== 'b';
+  const missing = !state.whiteConnected ? 'White' : 'Black';
   if (!both) {
-    waitText.textContent = !state.blackConnected
-      ? 'Waiting for your friend to join'
-      : 'Waiting for White to reconnect';
+    if (!started) waitText.textContent = 'Waiting for your friend to join';
+    else if (spectating) waitText.textContent = `${missing} left · waiting for them to come back`;
+    else waitText.textContent = 'Your friend left · clocks paused until they come back';
   }
 
   if (state.timedOut) {
@@ -1194,7 +1199,9 @@ function applyOnlineState(state) {
     gameOver = false;
     const side = state.turn === 'w' ? 'White' : 'Black';
     const yours = myColor === state.turn;
-    statusEl.textContent = yours ? `Your turn (${side})` : `Opponent's turn (${side})`;
+    if (spectating) statusEl.textContent = `Watching · ${side} to move`;
+    else if (!both && started) statusEl.textContent = 'Your friend disconnected · clocks paused';
+    else statusEl.textContent = yours ? `Your turn (${side})` : `Opponent's turn (${side})`;
     const canMove = (myColor === 'w' || myColor === 'b') && myColor === state.turn && both;
     board.setInteractive(canMove);
   }
