@@ -798,6 +798,8 @@ body.view
   align-items: center;
   min-height: 20px;
   overflow: hidden;
+  /* The pieces overlap by 6px; give the last one its 6px back so it isn't cut in half */
+  padding-right: 6px;
 }
 .captured img {
   width: 22px;
