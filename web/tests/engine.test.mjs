@@ -114,17 +114,25 @@ test('levels: harder levels look further ahead', () => {
   assert.ok(LEVELS.medium.depth < LEVELS.hard.depth);
 });
 
-test('levels: easy sometimes plays a random legal move', () => {
-  const chess = new Chess(START);
-  const r = chooseMove(chess, 'easy', { random: () => 0 }); // force the random branch
-  assert.equal(r.random, true);
-  assert.ok(chess.moves({ verbose: true }).some((m) => m.from === r.move.from && m.to === r.move.to));
+test('levels: easy sometimes plays a looser move, but never hangs a piece', () => {
+  // White can take a free queen; a "mistake" may skip it only for a move within 2.5 pawns.
+  const chess = new Chess('4k3/8/8/3q4/8/8/8/3RK3 w - - 0 1');
+  const r = chooseMove(chess, 'easy', { random: () => 0 }); // force the mistake branch
+  assert.equal(r.mistake, true);
+  assert.deepEqual(r.move, { from: 'd1', to: 'd5' }); // the only move close to best
+  const start = chooseMove(new Chess(START), 'easy', { random: () => 0.99 });
+  assert.equal(start.mistake, false);
+});
+
+test('levels: easy never misses a mate in one', () => {
+  const r = chooseMove(new Chess('6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1'), 'easy', { random: () => 0 });
+  assert.deepEqual(r.move, { from: 'a1', to: 'a8' });
 });
 
 test('levels: medium never plays randomly and finds the mate', () => {
   const chess = new Chess('6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1');
   const r = chooseMove(chess, 'medium', { random: () => 0 });
-  assert.equal(r.random, false);
+  assert.equal(r.mistake, false);
   assert.deepEqual(r.move, { from: 'a1', to: 'a8' });
 });
 
