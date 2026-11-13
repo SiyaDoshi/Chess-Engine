@@ -23,7 +23,8 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
-const MAX_GAMES = Number(process.env.MAX_GAMES ?? 3);
+// Games are tiny in memory; 10 leaves room now that left games wait 2 minutes for their players
+const MAX_GAMES = Number(process.env.MAX_GAMES ?? 10);
 
 const TIME_PRESETS = {
   '1+0': { baseMs: 60_000, incrementMs: 0 },
@@ -203,7 +204,7 @@ io.on('connection', (socket) => {
 
   socket.on('createGame', safe('createGame', (opts, cb) => {
     if (games.size >= MAX_GAMES) {
-      cb({ ok: false, error: 'Server full — only 3 games allowed at once. Try later.' });
+      cb({ ok: false, error: `Server full: only ${MAX_GAMES} games at once. Please try again in a few minutes.` });
       return;
     }
 
