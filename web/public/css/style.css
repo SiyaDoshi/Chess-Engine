@@ -1383,14 +1383,75 @@ body:not([data-bg="light"]) .captured img {
   color: var(--muted);
 }
 
-#share-link {
-  display: block;
-  word-break: break-all;
-  font-size: 0.85rem;
-  background: rgba(127, 127, 127, 0.08);
+/* Invite card: the link and the code each fit on one row with their copy button */
+.share-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.4rem 0.4rem 0.4rem 0.75rem;
   border: 1px solid var(--border);
-  padding: 0.55rem 0.7rem;
-  border-radius: 8px;
+  border-radius: 10px;
+  background: var(--panel-2);
+}
+.share-row .small-btn { margin-left: auto; flex: 0 0 auto; }
+#share-link {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: none;
+  padding: 0;
+}
+.share-code-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* Name boxes on the home card */
+.name-field {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 0 0.9rem;
+  padding: 0.25rem 0.3rem 0.25rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-2);
+}
+.name-field span {
+  flex: 0 0 4.6rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.name-field input {
+  flex: 1 1 0;
+  width: 100%;
+  min-width: 0;
+  padding: 0.5rem 0.4rem;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.98rem;
+  font-weight: 600;
+  outline: none;
+}
+.name-field input::placeholder { color: var(--muted); font-weight: 400; }
+.name-field:focus-within { border-color: var(--accent); }
+#pvp-panel .create-btn { margin-top: 0.3rem; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .wait-msg {
@@ -1635,11 +1696,26 @@ body[data-bg="light"] .logo { color: #7d5531; }
 /* Solid panels: no shine, just a soft shadow */
 .mode-card,
 .panel-card,
-.top-nav,
 .player-bar {
   background: var(--panel);
   border-color: var(--border);
   box-shadow: var(--shadow);
+}
+/* Desktop: the page is only as wide as the board plus the side panel, so
+   the toolbar above lines up with them instead of running past them */
+@media (min-width: 901px) {
+  .game-screen { width: fit-content; max-width: 100%; }
+  .game-body { width: auto; }
+}
+.move-list:empty { display: none; }
+
+/* The game's top row is a plain toolbar, not a card stretched across the page */
+.top-nav {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  padding-left: 0;
+  padding-right: 0;
 }
 .mode-card {
   border-radius: 14px;
