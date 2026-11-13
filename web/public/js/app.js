@@ -472,7 +472,7 @@ function settleLocalClocks(now = Date.now()) {
     clocksRunning = false;
     gameOver = true;
     board.setInteractive(false);
-    statusEl.textContent = timedOut === 'w' ? 'Black wins on time' : 'White wins on time';
+    statusEl.textContent = winText(timedOut === 'w' ? 'b' : 'w', 'on time');
     clockWhiteEl.classList.toggle('flagged', timedOut === 'w');
     clockBlackEl.classList.toggle('flagged', timedOut === 'b');
     showResult(timedOut === 'w' ? 'b' : 'w', 'time');
@@ -517,12 +517,18 @@ function renderClocks() {
 }
 
 function startClockLoop() {
-  const tick = () => {
+  const update = () => {
     if (mode === 'local-pvp' || mode === 'local-ai') settleLocalClocks();
     if (mode !== 'menu') renderClocks();
-    requestAnimationFrame(tick);
   };
-  requestAnimationFrame(tick);
+  const frame = () => {
+    update();
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+  // Animation frames pause when the page isn't being drawn (a background tab,
+  // some headless browsers), so a timer keeps the clocks current there too
+  setInterval(update, 250);
 }
 
 function updateModeUI({ onlineLobby = false, onlinePlaying = false } = {}) {
@@ -777,7 +783,11 @@ function showResult(winner, reason) {
   const moves = chess ? Math.ceil(chess.history().length / 2) : 0;
   const inMoves = moves ? ` in ${moves} move${moves === 1 ? '' : 's'}` : '';
   let detail;
-  if (!winner) detail = 'Nobody wins this one.';
+  const loser = winner === 'w' ? 'b' : 'w';
+  if (reason === 'time' && winner) {
+    const name = shortName(loser);
+    detail = name === 'You' ? 'You ran out of time.' : `${name} ran out of time.`;
+  } else if (!winner) detail = 'Nobody wins this one.';
   else if (mode === 'local-ai') detail = winner === myColor ? `You beat Gambit${inMoves}.` : `Gambit wins${inMoves}.`;
   else if (mode === 'online' && winner === myColor) detail = `You win${inMoves}.`;
   else detail = `${winText(winner, '').trim()}${inMoves}.`;
