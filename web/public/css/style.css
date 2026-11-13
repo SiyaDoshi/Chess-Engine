@@ -1202,7 +1202,7 @@ body:not([data-bg="light"]) .captured img {
 .side-panel > * { flex-shrink: 0; }
 .side-panel > .moves-card {
   flex: 0 1 auto;
-  min-height: 7rem;
+  min-height: 0; /* only as tall as its moves; scrolls once it reaches the board's height */
   display: flex;
   flex-direction: column;
 }
@@ -1411,7 +1411,30 @@ body:not([data-bg="light"]) .captured img {
   color: var(--muted);
 }
 
-/* Name boxes on the home card */
+.moves-card[hidden] { display: none; }
+
+/* Name boxes on the home card: one plain field each */
+.name-input-home {
+  display: block;
+  width: 100%;
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+.name-input-home::placeholder { color: var(--muted); font-weight: 400; }
+.name-input-home:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+#pvp-name-b { margin-bottom: 1rem; }
+
+/* (older labelled name box, no longer used) */
 .name-field {
   display: flex;
   align-items: center;
