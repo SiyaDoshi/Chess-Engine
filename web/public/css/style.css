@@ -839,9 +839,77 @@ body:not([data-bg="light"]) .captured img {
 }
 
 .player-name {
+  appearance: none;
+  border: 1px solid transparent;
+  background: none;
+  padding: 0.1rem 0.35rem;
+  margin-left: -0.35rem;
+  border-radius: 6px;
+  font: inherit;
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--text);
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.player-name:disabled { cursor: default; opacity: 1; }
+/* Your own name: click to change it; a pencil shows on hover */
+.player-name.editable { cursor: pointer; }
+.player-name.editable::after {
+  content: "✎";
+  margin-left: 0.35rem;
+  font-size: 0.8em;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.player-name.editable:hover,
+.player-name.editable:focus-visible {
+  border-color: var(--border);
+  background: var(--panel-2);
+  outline: none;
+}
+.player-name.editable:hover::after,
+.player-name.editable:focus-visible::after { opacity: 1; }
+@media (hover: none) {
+  .player-name.editable::after { opacity: 0.7; } /* touch screens: always show the pencil */
+}
+.name-input {
+  width: 11rem;
+  max-width: 45vw;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  outline: none;
+}
+
+/* Which colour each player has: a small pawn of that colour */
+.side-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+.side-badge img {
+  width: 22px;
+  height: 22px;
+}
+.player-bar[data-side="b"] .side-badge {
+  background: #efe6d6; /* light chip so the black pawn stands out */
+  border-color: #d9ccb8;
 }
 
 .clock-time {

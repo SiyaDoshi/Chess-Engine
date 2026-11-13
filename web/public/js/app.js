@@ -4,7 +4,7 @@
 
 import { Chess } from '/lib/chess.js';
 import { EngineClient } from '/js/engine/client.js';
-import { DEFAULT_LEVEL } from '/js/engine/levels.js';
+import { DEFAULT_LEVEL, LEVELS } from '/js/engine/levels.js';
 import { MATE } from '/js/engine/search.js';
 import { playMoveSound, setSoundEnabled } from '/js/sound.js';
 
@@ -211,6 +211,7 @@ pieceSelect.addEventListener('change', () => {
   window.setPieceSet(pieceSelect.value);
   localStorage.setItem('chess-pieces', pieceSelect.value);
   board.render();
+  renderPlayers(); // the colour badges use the same pieces
 });
 
 // Background theme (gameplay)
@@ -247,6 +248,7 @@ levelSelect.addEventListener('change', () => {
   // Takes effect from the engine's next move.
   engineLevel = levelSelect.value;
   localStorage.setItem('chess-level', engineLevel);
+  renderPlayers(); // the engine's name shows its level
 });
 
 // Which side the player takes against the engine
@@ -490,9 +492,7 @@ function updateModeUI({ onlineLobby = false, onlinePlaying = false } = {}) {
   evalBarEl.hidden = !single;
 
   clocksEl.classList.toggle('single-clock', single);
-  const label = (color, fallback) => (single ? (color === myColor ? 'You' : 'Engine') : fallback);
-  clockWhiteEl.querySelector('.clock-label').textContent = label('w', 'White');
-  clockBlackEl.querySelector('.clock-label').textContent = label('b', 'Black');
+  renderPlayers();
   colorField.hidden = !single;
   hintBtn.hidden = !single;
 
@@ -500,6 +500,126 @@ function updateModeUI({ onlineLobby = false, onlinePlaying = false } = {}) {
     timerSelect.disabled = !(myColor === 'w' && onlineLobby);
   } else {
     timerSelect.disabled = false;
+  }
+}
+
+/*
+ * Player names. Click your name to change it. Two Player: both names can be
+ * changed. Against the engine and online: only your own. Names are kept in
+ * this browser; online they're also sent to the server so your friend sees them.
+ */
+const NAME_MAX = 20;
+let onlineNames = { w: '', b: '' };
+
+function storedName(key) {
+  try { return localStorage.getItem(key) || ''; } catch { return ''; }
+}
+function storeName(key, value) {
+  try {
+    if (value) localStorage.setItem(key, value);
+    else localStorage.removeItem(key);
+  } catch { /* private mode */ }
+}
+const cleanName = (raw) => [...raw.replace(/\s+/g, ' ').trim()].slice(0, NAME_MAX).join('').trim();
+
+function canRename(color) {
+  if (mode === 'local-pvp') return true;
+  return (mode === 'local-ai' || mode === 'online') && color === myColor;
+}
+
+/** The custom name for a seat, or '' if none was set. */
+function customName(color) {
+  if (mode === 'local-pvp') return storedName(`chess-name-${color}`);
+  if (mode === 'online' && onlineNames[color]) return onlineNames[color];
+  return color === myColor ? storedName('chess-name') : '';
+}
+
+function playerName(color) {
+  const side = color === 'w' ? 'White' : 'Black';
+  if (mode === 'local-ai' && color !== myColor) {
+    return `Gambit · ${LEVELS[levelSelect.value]?.label ?? 'Engine'}`;
+  }
+  const fallback = (mode === 'local-ai' || mode === 'online') && color === myColor ? 'You' : side;
+  return customName(color) || fallback;
+}
+
+function renderPlayers() {
+  for (const [color, bar] of [['w', clockWhiteEl], ['b', clockBlackEl]]) {
+    const label = bar.querySelector('.clock-label');
+    const editable = canRename(color);
+    label.textContent = playerName(color);
+    label.disabled = !editable;
+    label.classList.toggle('editable', editable);
+    label.title = editable ? 'Click to change the name' : '';
+    const badge = bar.querySelector('.side-badge');
+    badge.title = color === 'w' ? 'Plays White' : 'Plays Black';
+    badge.querySelector('img').src = window.pieceUrl(`${color}P`);
+  }
+}
+
+function setPlayerName(color, raw) {
+  const name = cleanName(raw);
+  if (mode === 'local-pvp') {
+    storeName(`chess-name-${color}`, name);
+  } else {
+    storeName('chess-name', name);
+    if (mode === 'online') {
+      onlineNames[color] = name;
+      socket?.emit('setName', { name }, (res) => {
+        if (res?.ok && mode === 'online') {
+          onlineNames[color] = res.name;
+          renderPlayers();
+        }
+      });
+    }
+  }
+  renderPlayers();
+}
+
+function startRename(color) {
+  if (!canRename(color)) return;
+  const bar = color === 'w' ? clockWhiteEl : clockBlackEl;
+  const label = bar.querySelector('.clock-label');
+  if (bar.querySelector('.name-input')) return;
+  const input = document.createElement('input');
+  input.className = 'name-input';
+  input.maxLength = NAME_MAX;
+  input.value = customName(color);
+  input.placeholder = mode === 'local-pvp' ? (color === 'w' ? 'White' : 'Black') : 'Your name';
+  input.setAttribute('aria-label', 'Player name');
+  label.hidden = true;
+  label.after(input);
+  input.focus();
+  input.select();
+  let done = false;
+  const finish = (save) => {
+    if (done) return;
+    done = true;
+    if (save) setPlayerName(color, input.value);
+    input.remove();
+    label.hidden = false;
+    renderPlayers();
+  };
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') finish(true);
+    else if (e.key === 'Escape') finish(false);
+    e.stopPropagation();
+  });
+  input.addEventListener('blur', () => finish(true));
+}
+
+clockWhiteEl.querySelector('.clock-label').addEventListener('click', () => startRename('w'));
+clockBlackEl.querySelector('.clock-label').addEventListener('click', () => startRename('b'));
+
+/** Online: show the names from the server, and send ours when we take a seat. */
+function syncOnlineNames(state) {
+  onlineNames = { w: state.whiteName || '', b: state.blackName || '' };
+  renderPlayers();
+}
+function announceOnlineName() {
+  const mine = storedName('chess-name');
+  if (mine && (myColor === 'w' || myColor === 'b') && onlineNames[myColor] !== mine) {
+    socket?.emit('setName', { name: mine }, () => {});
   }
 }
 
@@ -1129,6 +1249,7 @@ function rejoinOnlineGame() {
     syncOnlineGame(res.state);
     board.setGame(chess);
     applyOnlineState(res.state);
+    announceOnlineName();
   });
 }
 
@@ -1224,7 +1345,9 @@ function enterOnline(gameId, color, state) {
 
   waitText.textContent = 'Waiting for your friend to join';
   playControls.hidden = true;
+  onlineNames = { w: '', b: '' };
   applyOnlineState(state);
+  announceOnlineName();
   showGame();
 }
 
@@ -1248,6 +1371,7 @@ function applyOnlineState(state) {
   }
 
   applyOnlineClocks(state);
+  syncOnlineNames(state);
 
   const both = state.whiteConnected && state.blackConnected;
   updateModeUI({ onlineLobby: !both, onlinePlaying: both });
@@ -1255,10 +1379,11 @@ function applyOnlineState(state) {
   const started = !!chess && chess.history().length > 0;
   const spectating = myColor !== 'w' && myColor !== 'b';
   const missing = !state.whiteConnected ? 'White' : 'Black';
+  const friend = onlineNames[myColor === 'w' ? 'b' : 'w'] || 'Your friend';
   if (!both) {
     if (!started) waitText.textContent = 'Waiting for your friend to join';
     else if (spectating) waitText.textContent = `${missing} left · waiting for them to come back`;
-    else waitText.textContent = 'Your friend left · clocks paused until they come back';
+    else waitText.textContent = `${friend} left · clocks paused until they come back`;
   }
 
   if (state.timedOut) {
@@ -1284,7 +1409,7 @@ function applyOnlineState(state) {
     const side = state.turn === 'w' ? 'White' : 'Black';
     const yours = myColor === state.turn;
     if (spectating) statusEl.textContent = `Watching · ${side} to move`;
-    else if (!both && started) statusEl.textContent = 'Your friend disconnected · clocks paused';
+    else if (!both && started) statusEl.textContent = `${friend} disconnected · clocks paused`;
     else statusEl.textContent = yours ? `Your turn (${side})` : `Opponent's turn (${side})`;
     const canMove = (myColor === 'w' || myColor === 'b') && myColor === state.turn && both;
     board.setInteractive(canMove);
