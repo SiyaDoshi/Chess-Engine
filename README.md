@@ -71,12 +71,12 @@ These are on Stockfish's engine scale, not chess.com or FIDE ratings.
 
 ```bash
 cd web && npm test                          # engine and server tests (Node's built-in test runner)
-python3 -m unittest discover desktop/tests  # desktop move generator and AI
+python3 -m unittest discover desktop/tests  # desktop move generator, AI and promotion picker
 ```
 
-- **Perft** checks count every position reachable in N moves and compare with the published numbers. Running them against the original Python move generator found three bugs: castling rights saved in the wrong order, castling still allowed after the rook was captured, and no under-promotion. All three are fixed, and it now matches all six standard test positions.
-- Server tests start the real server and play through it: turn order, illegal moves, spectators, checkmate, and malformed messages (one of which used to crash the server).
-- Engine tests check mates in one and two, winning free material, the horizon effect, time limits, repetition and 50-move draws, and that alpha-beta, move ordering and the transposition table return the same result as plain minimax while searching less.
+- **Perft** checks count every position reachable in N moves and compare with the published numbers. Running them against the original Python move generator found three bugs: castling rights saved in the wrong order, castling still allowed after the rook was captured, and no under-promotion. All three are fixed, it now matches all six standard test positions, and the desktop game lets you choose the promotion piece (click or Q/R/B/N).
+- Server tests start the real server and play through it: turn order, illegal moves, spectators, checkmate, clocks that wait for the first move, and malformed messages (one of which used to crash the server).
+- Engine tests check mates in one and two, winning free material, the horizon effect, time limits, repetition and 50-move draws, driving a bare king to the edge, the bishop-and-knight mate (it finds mate from scattered starts well inside the 50-move limit), that Easy never gives away material for free or misses a mate in one, and that alpha-beta, move ordering and the transposition table return the same result as plain minimax while searching less.
 
 ## Run it locally
 
