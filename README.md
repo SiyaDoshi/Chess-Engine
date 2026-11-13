@@ -11,8 +11,9 @@ The engine searches with NegaMax and alpha-beta pruning, orders moves so it can 
 ## Features
 
 - **Play the engine** at Easy, Medium or Hard, as White or Black, with an evaluation bar and a live readout of what the engine found (score, depth, positions searched, time, best line)
-- **Two Player** on one device, or **Play Online** with a share link (Socket.IO, server-side move validation and clocks)
-- Drag-and-drop or click-to-move, promotion picker, move list with review (← →), captured pieces, hints
+- **Two Player** on one device, or **Play Online** with a share link or room code (Socket.IO, server-side move validation and clocks). Each player gets a private seat key, so a dropped connection or a refresh puts you back in your seat, and a game is private once both players have joined
+- Name the players: click your name to change it; online, your friend sees it
+- Drag-and-drop or click-to-move, promotion picker, captured pieces, hints, and a move list you can step back through (click a move or ← →) without changing the game
 - Time controls from 1+0 to 10+0 with increments; the engine manages its own clock
 - Board and piece themes, light and dark mode, sounds, and settings that are remembered
 - Works on phones and laptops
@@ -57,13 +58,13 @@ The transposition table matters most in deeper searches: at depth 5 it cuts the 
 
 ### Strength
 
-Measured in games against **Stockfish 16.1** in its strength-limited mode, on the 60s + 0.6s clock its Elo setting is calibrated for. Small samples, so roughly ±200:
+Measured over **96 games per level** against **Stockfish 16.1** in its strength-limited mode, on the 60s + 0.6s clock its Elo setting is calibrated for. Each level played two Stockfish settings from 24 different openings, each opening once with each colour. The games run on GitHub Actions (the **Elo** workflow, 18 jobs side by side) and `bench/elo/summarize.mjs` turns them into a performance rating with a 95% range:
 
-| Level | Search | Result | Estimated Elo |
-| --- | --- | --- | --- |
-| Easy | depth 3; 15% of the time picks one of its 3 best moves (never one that loses more than 1.5 pawns or misses a mate in one) | 10.5/16 vs Stockfish 1320 | about 1,430 |
-| Medium | depth 4, capped at 1s | 8/10 vs Stockfish 1500 | about 1,750 |
-| Hard | as deep as it can in 2.5s (usually 5–6 half-moves) | 7/10 vs Stockfish 1700, 5.5/8 vs Stockfish 1900 | about 1,930 |
+| Level | Search | Games (W / D / L) | Result | Elo (95% range) |
+| --- | --- | --- | --- | --- |
+| Easy | depth 3; 15% of the time picks one of its 3 best moves (never one that loses more than 1.5 pawns or misses a mate in one) | 96 (64 / 1 / 31) | 37/48 vs Stockfish 1320, 27.5/48 vs 1500 | **1,543** (1,468–1,628) |
+| Medium | depth 4, capped at 1s | 96 (56 / 4 / 36) | 35.5/48 vs Stockfish 1600, 22.5/48 vs 1800 | **1,780** (1,706–1,859) |
+| Hard | as deep as it can in 2.5s (usually 5–6 half-moves) | 96 (51 / 4 / 41) | 32/48 vs Stockfish 1800, 21/48 vs 2000 | **1,939** (1,865–2,016) |
 
 These are on Stockfish's engine scale, not chess.com or FIDE ratings.
 
@@ -75,7 +76,7 @@ python3 -m unittest discover desktop/tests  # desktop move generator, AI and pro
 ```
 
 - **Perft** checks count every position reachable in N moves and compare with the published numbers. Running them against the original Python move generator found three bugs: castling rights saved in the wrong order, castling still allowed after the rook was captured, and no under-promotion. All three are fixed, it now matches all six standard test positions, and the desktop game lets you choose the promotion piece (click or Q/R/B/N).
-- Server tests start the real server and play through it: turn order, illegal moves, spectators, checkmate, clocks that wait for the first move, and malformed messages (one of which used to crash the server).
+- Server tests start the real server and play through it: turn order, illegal moves, private games, players rejoining with their seat key, names, checkmate, clocks that wait for the first move, and malformed messages (one of which used to crash the server).
 - Engine tests check mates in one and two, winning free material, the horizon effect, time limits, repetition and 50-move draws, driving a bare king to the edge, the bishop-and-knight mate (it finds mate from scattered starts well inside the 50-move limit), that Easy never gives away material for free or misses a mate in one, and that alpha-beta, move ordering and the transposition table return the same result as plain minimax while searching less.
 
 ## Run it locally
