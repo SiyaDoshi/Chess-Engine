@@ -32,13 +32,14 @@ export class EngineClient {
   /**
    * Ask the engine for a move. Resolves with the search result.
    * maxTimeMs (optional) caps the level's thinking time, e.g. when low on clock.
+   * moves (optional) is the game so far, so the engine can avoid repetitions.
    */
-  think(fen, level, maxTimeMs) {
+  think(fen, level, maxTimeMs, moves) {
     const id = this.#nextId++;
     const worker = this.#ensureWorker();
     return new Promise((resolve, reject) => {
       this.#pending.set(id, { resolve, reject });
-      worker.postMessage({ id, fen, level, maxTimeMs });
+      worker.postMessage({ id, fen, level, maxTimeMs, moves });
     });
   }
 

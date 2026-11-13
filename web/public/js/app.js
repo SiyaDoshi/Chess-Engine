@@ -267,7 +267,7 @@ hintBtn.addEventListener('click', async () => {
   hintBtn.disabled = true;
   hintBtn.textContent = 'Thinking…';
   try {
-    const result = await hintEngine.think(fen, 'hard', 1200);
+    const result = await hintEngine.think(fen, 'hard', 1200, movesOf(chess));
     if (result.move && chess.fen() === fen) {
       board.showHint(result.move.from, result.move.to);
       const san = new Chess(fen).move(result.move).san;
@@ -614,6 +614,11 @@ function syncOnlineGame(state) {
   chess.load(state.fen);
 }
 
+/** The game's moves as plain objects, for the engine worker. */
+function movesOf(game) {
+  return game.history({ verbose: true }).map(({ from, to, promotion }) => ({ from, to, promotion }));
+}
+
 /** Engine score (centipawns, White's view) as "+0.4", "-1.2" or "M3". */
 function formatScore(score) {
   if (Math.abs(score) > MATE - 1000) {
@@ -751,7 +756,7 @@ function startHomePreview() {
     else {
       let result;
       try {
-        result = await previewEngine.think(game.fen(), 'medium', 250);
+        result = await previewEngine.think(game.fen(), 'medium', 250, movesOf(game));
       } catch {
         return; // stopped
       }
@@ -1028,7 +1033,7 @@ async function runAiTurn() {
     // Never spend more than ~1/30 of the remaining time on one move.
     const engineMs = myColor === 'w' ? blackMs : whiteMs;
     const budgetMs = Math.max(100, Math.floor(engineMs / 30));
-    result = await engine.think(fenBefore, engineLevel, budgetMs);
+    result = await engine.think(fenBefore, engineLevel, budgetMs, movesOf(chess));
   } catch {
     return; // cancelled by undo, reset or leaving the game
   }
