@@ -1460,7 +1460,8 @@ body:not([data-bg="light"]) .captured img {
   gap: 0.5rem;
 }
 .join-row input {
-  flex: 1 1 auto;
+  flex: 1 1 0;
+  width: 100%;
   min-width: 0;
   padding: 0.6rem 0.8rem;
   border: 1px solid var(--border);
