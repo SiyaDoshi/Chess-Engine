@@ -16,13 +16,14 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const { Chess } = require('chess.js');
+const { randomBytes } = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
-const MAX_GAMES = 3;
+const MAX_GAMES = Number(process.env.MAX_GAMES ?? 3);
 
 const TIME_PRESETS = {
   '1+0': { baseMs: 60_000, incrementMs: 0 },
@@ -167,6 +168,24 @@ function safe(event, handler) {
 }
 
 const SQUARE = /^[a-h][1-8]$/;
+/** How long an empty game is kept so both players can come back (ms). */
+const EMPTY_GAME_GRACE_MS = Number(process.env.EMPTY_GAME_GRACE_MS ?? 120000);
+
+/** A private key for one seat, so its player (and only them) can rejoin. */
+const newSeatToken = () => randomBytes(16).toString('hex');
+
+/** Put a socket in a seat, replacing any older connection of the same player. */
+function takeSeat(socket, game, id, color) {
+  const key = color === 'w' ? 'whiteId' : 'blackId';
+  const old = game[key];
+  if (old && old !== socket.id) io.sockets.sockets.get(old)?.disconnect(true);
+  game[key] = socket.id;
+  clearTimeout(game.emptyTimer);
+  game.emptyTimer = null;
+  socket.join(id);
+  socket.data.gameId = id;
+  socket.data.color = color;
+}
 const MAX_NAME = 20;
 
 /** A display name: plain printable text, at most 20 characters, or ''. */
@@ -193,23 +212,24 @@ io.on('connection', (socket) => {
     const timeControl = parseTimeControl(opts.timeControl);
     games.set(id, {
       chess: new Chess(),
-      whiteId: socket.id,
+      whiteId: null,
       blackId: null,
+      tokens: { w: newSeatToken(), b: null }, // b is set when the friend joins
       names: { w: '', b: '' }, // display names; empty means "White" / "Black"
       clocks: createClockState(timeControl),
+      emptyTimer: null,
     });
-
-    socket.join(id);
-    socket.data.gameId = id;
-    socket.data.color = 'w';
+    const game = games.get(id);
+    takeSeat(socket, game, id, 'w');
 
     console.log(`Game ${id} created (${timeControl}). Active: ${games.size}/${MAX_GAMES}`);
     cb({
       ok: true,
       gameId: id,
       color: 'w',
+      token: game.tokens.w,
       sharePath: `/g/${id}`,
-      state: publicState(games.get(id), id),
+      state: publicState(game, id),
     });
   }));
 
@@ -224,7 +244,7 @@ io.on('connection', (socket) => {
       ack?.({ ok: false, error: 'Only the host can change the timer.' });
       return;
     }
-    if (game.blackId) {
+    if (game.tokens.b) {
       ack?.({ ok: false, error: 'Timer locked once the opponent joins.' });
       return;
     }
@@ -235,7 +255,13 @@ io.on('connection', (socket) => {
     ack?.({ ok: true, state });
   }));
 
-  socket.on('joinGame', safe('joinGame', ({ gameId }, ack) => {
+  /*
+   * Joining: a player who brings their seat key gets their own seat back
+   * (after a refresh or a dropped connection). Otherwise the visitor takes
+   * the free Black seat. Once both seats belong to someone, the game is
+   * private: nobody else can join or watch.
+   */
+  socket.on('joinGame', safe('joinGame', ({ gameId, token }, ack) => {
     const id = typeof gameId === 'string' ? gameId.trim().toLowerCase() : '';
     const game = games.get(id);
 
@@ -244,45 +270,31 @@ io.on('connection', (socket) => {
       return;
     }
 
-    if (!game.whiteId) {
-      game.whiteId = socket.id;
-      game.names.w = '';
-      socket.join(id);
-      socket.data.gameId = id;
-      socket.data.color = 'w';
-      maybeStartClocks(game);
-      const state = publicState(game, id);
-      socket.to(id).emit('playerUpdate', state);
-      ack({ ok: true, gameId: id, color: 'w', state });
-      return;
+    let color = null;
+    let rejoined = false;
+    if (typeof token === 'string' && token) {
+      if (token === game.tokens.w) color = 'w';
+      else if (token === game.tokens.b) color = 'b';
+      rejoined = !!color;
     }
-
-    if (!game.blackId) {
-      game.blackId = socket.id;
+    if (!color && !game.tokens.b) {
+      color = 'b';
+      game.tokens.b = newSeatToken();
       game.names.b = '';
-      socket.join(id);
-      socket.data.gameId = id;
-      socket.data.color = 'b';
-      maybeStartClocks(game);
-      const state = publicState(game, id);
-      io.to(id).emit('playerUpdate', state);
-      ack({ ok: true, gameId: id, color: 'b', state });
+    }
+    if (!color) {
+      ack({ ok: false, full: true, error: 'This game already has two players.' });
       return;
     }
 
-    socket.join(id);
-    socket.data.gameId = id;
-    socket.data.color = 'spectator';
-    ack({
-      ok: true,
-      gameId: id,
-      color: 'spectator',
-      state: publicState(game, id),
-      note: 'Both seats taken — you are spectating.',
-    });
+    takeSeat(socket, game, id, color);
+    maybeStartClocks(game);
+    const state = publicState(game, id);
+    socket.to(id).emit('playerUpdate', state);
+    ack({ ok: true, gameId: id, color, token: game.tokens[color], rejoined, state });
   }));
 
-  // A player names themselves; spectators can't. Everyone in the room sees it.
+  // A seated player names themselves. Everyone in the room sees it.
   socket.on('setName', safe('setName', ({ name }, ack) => {
     const id = socket.data.gameId;
     const game = id && games.get(id);
@@ -305,7 +317,8 @@ io.on('connection', (socket) => {
     const id = socket.data.gameId;
     const game = games.get(id);
     if (!game) {
-      ack({ ok: false, error: 'No active game.' });
+      // This connection isn't in a game (e.g. it just reconnected): the client rejoins and retries
+      ack({ ok: false, rejoin: true, error: 'Reconnecting to the game…' });
       return;
     }
 
@@ -318,8 +331,8 @@ io.on('connection', (socket) => {
     }
 
     const color = socket.data.color;
-    if (color !== 'w' && color !== 'b') {
-      ack({ ok: false, error: 'Spectators cannot move.' });
+    if ((color !== 'w' && color !== 'b') || game[color === 'w' ? 'whiteId' : 'blackId'] !== socket.id) {
+      ack({ ok: false, rejoin: true, error: 'Reconnecting to the game…' });
       return;
     }
     if (game.chess.turn() !== color) {
@@ -365,6 +378,8 @@ io.on('connection', (socket) => {
     const game = games.get(id);
     if (!game) return;
 
+    // An old connection replaced by the same player rejoining: nothing changes
+    if (game.whiteId !== socket.id && game.blackId !== socket.id) return;
     if (game.whiteId === socket.id) game.whiteId = null;
     if (game.blackId === socket.id) game.blackId = null;
 
@@ -376,7 +391,10 @@ io.on('connection', (socket) => {
     }
 
     io.to(id).emit('playerUpdate', publicState(game, id));
-    removeIfEmpty(id);
+    // Keep an empty game for a while, so players whose connection dropped can come back
+    if (!game.whiteId && !game.blackId && !game.emptyTimer) {
+      game.emptyTimer = setTimeout(() => removeIfEmpty(id), EMPTY_GAME_GRACE_MS);
+    }
     console.log('Disconnected:', socket.id);
   });
 });
