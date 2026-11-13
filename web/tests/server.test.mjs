@@ -6,19 +6,19 @@ import { fileURLToPath } from 'node:url';
 import { io } from 'socket.io-client';
 
 const PORT = 3199;
-const URL = `http://localhost:${PORT}`;
+const BASE = `http://localhost:${PORT}`;
 let server;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const connect = () =>
   new Promise((resolve) => {
-    const s = io(URL, { transports: ['websocket'], forceNew: true, reconnection: false });
+    const s = io(BASE, { transports: ['websocket'], forceNew: true, reconnection: false });
     s.on('connect', () => resolve(s));
   });
 const call = (s, event, payload) => new Promise((resolve) => s.emit(event, payload, resolve));
 const alive = async () => {
   try {
-    return (await fetch(URL)).status === 200;
+    return (await fetch(BASE)).status === 200;
   } catch {
     return false;
   }
