@@ -61,7 +61,7 @@ Measured in games against **Stockfish 16.1** in its strength-limited mode, on th
 
 | Level | Search | Result | Estimated Elo |
 | --- | --- | --- | --- |
-| Easy | depth 1, plays a random move 30% of the time | lost all 12 games to Medium | below 1,300 (beginner) |
+| Easy | depth 3; 15% of the time picks one of its 3 best moves (never one that loses more than 1.5 pawns or misses a mate in one) | 10.5/16 vs Stockfish 1320 | about 1,430 |
 | Medium | depth 4, capped at 1s | 8/10 vs Stockfish 1500 | about 1,750 |
 | Hard | as deep as it can in 2.5s (usually 5–6 half-moves) | 7/10 vs Stockfish 1700, 5.5/8 vs Stockfish 1900 | about 1,930 |
 
