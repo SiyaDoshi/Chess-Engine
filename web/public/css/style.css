@@ -928,17 +928,15 @@ body:not([data-bg="light"]) .captured img {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: 8px;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
 }
+/* Just the pawn of the player's colour, nothing behind it */
 .side-badge img {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
 }
-.player-bar[data-side="b"] .side-badge {
-  background: #efe6d6; /* light chip so the black pawn stands out */
-  border-color: #d9ccb8;
+/* On the dark theme the black pawn gets a faint light outline so it stays visible */
+body:not([data-bg="light"]) .player-bar[data-side="b"] .side-badge img {
+  filter: drop-shadow(0 0 1.2px rgba(244, 234, 217, 0.9));
 }
 
 .clock-time {
