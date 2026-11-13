@@ -70,11 +70,12 @@ These are on Stockfish's engine scale, not chess.com or FIDE ratings.
 ## Tests
 
 ```bash
-cd web && npm test                          # engine tests (Node's built-in test runner)
+cd web && npm test                          # engine and server tests (Node's built-in test runner)
 python3 -m unittest discover desktop/tests  # desktop move generator and AI
 ```
 
 - **Perft** checks count every position reachable in N moves and compare with the published numbers. Running them against the original Python move generator found three bugs: castling rights saved in the wrong order, castling still allowed after the rook was captured, and no under-promotion. All three are fixed, and it now matches all six standard test positions.
+- Server tests start the real server and play through it: turn order, illegal moves, spectators, checkmate, and malformed messages (one of which used to crash the server).
 - Engine tests check mates in one and two, winning free material, the horizon effect, time limits, repetition and 50-move draws, and that alpha-beta, move ordering and the transposition table return the same result as plain minimax while searching less.
 
 ## Run it locally
