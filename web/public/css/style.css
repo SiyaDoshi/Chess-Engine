@@ -1574,12 +1574,9 @@ body:not([data-bg="light"]) .player-bar[data-side="b"] .side-badge img {
 
 .room-badge {
   margin: 0;
-  font-size: 0.9rem;
+  padding: 0 0.2rem;
+  font-size: 0.85rem;
   color: var(--muted);
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 0.35rem 0.9rem;
 }
 
 @media (max-width: 1100px) {
@@ -1839,4 +1836,25 @@ body[data-bg="light"] .logo { color: #7d5531; }
 .nav-btn,
 .small-btn {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Tablets held upright: stack like a phone, with a bigger board */
+@media (min-width: 721px) and (max-width: 1024px) and (orientation: portrait) {
+  body.view-home {
+    max-height: none;
+    overflow-y: auto;
+    align-items: flex-start;
+    padding-top: 3rem;
+  }
+  .home-row {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 2rem;
+  }
+  .mode-card { order: 0; width: min(440px, 80vw); }
+  .home-board-shell { order: 1; padding: 0; }
+  .home-board-wrap { width: min(560px, 80vw); }
+  .mode-secondary .mode-icon { display: inline-flex; }
+  .home-footer { position: static; margin-top: 2rem; }
 }
