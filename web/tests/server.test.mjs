@@ -98,3 +98,24 @@ test('server: clocks start with White\'s first move, not when Black joins', asyn
   assert.equal(first.state.clocksRunning, true);
   assert.equal(first.state.whiteMs, 5 * 60 * 1000, "White's first move cost no time");
 });
+
+test('server: players can name themselves; names are cleaned and shared', async () => {
+  const white = await player();
+  const created = await call(white, 'createGame', { timeControl: '5+0' });
+  const black = await player();
+  await call(black, 'joinGame', { gameId: created.gameId });
+  const seen = new Promise((resolve) => white.on('playerUpdate', (st) => st.blackName && resolve(st)));
+  const named = await call(black, 'setName', { name: '  Siya   <b>Doshi</b>\u0007 and a very long tail ' });
+  assert.equal(named.ok, true);
+  assert.equal(named.name, 'Siya bDoshi/b and a', 'tags, control characters and extra length removed');
+  assert.equal((await seen).blackName, named.name, 'the other player sees it');
+
+  const watcher = await player();
+  await call(watcher, 'joinGame', { gameId: created.gameId });
+  assert.equal((await call(watcher, 'setName', { name: 'Spectator' })).ok, false, 'spectators cannot name a seat');
+  assert.equal((await call(white, 'setName', { name: 42 })).name, '', 'non-text names are ignored');
+  white.emit('setName', null, () => {});
+  white.emit('setName', { name: 'x' }); // no reply callback
+  await sleep(200);
+  assert.ok(await alive());
+});
