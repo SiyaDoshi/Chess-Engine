@@ -46,7 +46,8 @@ app.get('/g/:id', (req, res) => {
 });
 
 function makeGameId() {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  // No 0/o, 1/l/i: the code is meant to be read out and typed
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
   let id = '';
   for (let i = 0; i < 4; i++) id += chars[Math.floor(Math.random() * chars.length)];
   return id;
@@ -257,11 +258,13 @@ io.on('connection', (socket) => {
 
   /*
    * Joining: a player who brings their seat key gets their own seat back
-   * (after a refresh or a dropped connection). Otherwise the visitor takes
+   * (after a refresh or a dropped connection). A backup key (kept by the
+   * browser across tabs) only works while that seat is empty, so a second
+   * tab in the same browser doesn't steal the first tab's seat. Otherwise the visitor takes
    * the free Black seat. Once both seats belong to someone, the game is
    * private: nobody else can join or watch.
    */
-  socket.on('joinGame', safe('joinGame', ({ gameId, token }, ack) => {
+  socket.on('joinGame', safe('joinGame', ({ gameId, token, backupToken }, ack) => {
     const id = typeof gameId === 'string' ? gameId.trim().toLowerCase() : '';
     const game = games.get(id);
 
@@ -275,6 +278,11 @@ io.on('connection', (socket) => {
     if (typeof token === 'string' && token) {
       if (token === game.tokens.w) color = 'w';
       else if (token === game.tokens.b) color = 'b';
+      rejoined = !!color;
+    }
+    if (!color && typeof backupToken === 'string' && backupToken) {
+      if (backupToken === game.tokens.w && !game.whiteId) color = 'w';
+      else if (backupToken === game.tokens.b && !game.blackId) color = 'b';
       rejoined = !!color;
     }
     if (!color && !game.tokens.b) {
@@ -372,7 +380,7 @@ io.on('connection', (socket) => {
     ack({ ok: true, move, state });
   }));
 
-  socket.on('disconnect', () => {
+  socket.on('disconnect', (reason) => {
     const id = socket.data.gameId;
     if (!id) return;
     const game = games.get(id);
@@ -395,7 +403,7 @@ io.on('connection', (socket) => {
     if (!game.whiteId && !game.blackId && !game.emptyTimer) {
       game.emptyTimer = setTimeout(() => removeIfEmpty(id), EMPTY_GAME_GRACE_MS);
     }
-    console.log('Disconnected:', socket.id);
+    console.log('Disconnected:', socket.id, reason);
   });
 });
 

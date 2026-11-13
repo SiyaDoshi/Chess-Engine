@@ -165,3 +165,17 @@ test('server: a player who reconnects or refreshes gets their own seat back', as
   const late = await player();
   assert.equal((await call(late, 'joinGame', { gameId: created.gameId, token: created.token })).ok, false, 'removed after the grace period');
 });
+
+test('server: a backup seat key only works while that seat is empty', async () => {
+  const white = await player();
+  const created = await call(white, 'createGame', { timeControl: '5+0' });
+  // A second tab in the same browser has the backup key but White is still connected: it joins as Black
+  const tab2 = await player();
+  const joined = await call(tab2, 'joinGame', { gameId: created.gameId, backupToken: created.token });
+  assert.equal(joined.color, 'b');
+  // White closes their tab and opens the link again later: the backup key brings them back
+  white.close();
+  await sleep(200);
+  const reopened = await player();
+  assert.equal((await call(reopened, 'joinGame', { gameId: created.gameId, backupToken: created.token })).color, 'w');
+});
