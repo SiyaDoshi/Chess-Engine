@@ -1461,7 +1461,7 @@ function enterOnline(gameId, color, state) {
   shareLinkEl.textContent = `${window.location.host}/g/${gameId}`;
   shareLinkEl.title = shareLinkEl.dataset.url;
   roomCodeEl.textContent = gameId.toUpperCase();
-  roomBadge.textContent = `Room: ${gameId.toUpperCase()}`;
+  roomBadge.textContent = `Game code ${gameId.toUpperCase()}`;
 
   if (color === 'w') youAreEl.textContent = 'You are White';
   else if (color === 'b') youAreEl.textContent = 'You are Black';
