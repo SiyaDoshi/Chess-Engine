@@ -190,7 +190,7 @@ document.addEventListener('keydown', (e) => {
   e.preventDefault();
 });
 
-// Board colors (the homepage preview always uses sage green via CSS).
+// Board colors (the homepage preview always uses walnut brown via CSS).
 const savedTheme = localStorage.getItem('chess-theme') || 'green';
 themeSelect.value = savedTheme;
 document.body.dataset.theme = themeSelect.value || 'green';
