@@ -179,3 +179,68 @@ test('server: a backup seat key only works while that seat is empty', async () =
   const reopened = await player();
   assert.equal((await call(reopened, 'joinGame', { gameId: created.gameId, backupToken: created.token })).color, 'w');
 });
+
+test('server: a game survives a server restart, restored from a player\'s copy', async () => {
+  const port = 3198;
+  const base = `http://localhost:${port}`;
+  const cwd = fileURLToPath(new URL('..', import.meta.url));
+  const start = () => spawn(process.execPath, ['server.js'], { cwd, env: { ...process.env, PORT: String(port) }, stdio: 'ignore' });
+  const up = async () => {
+    for (let i = 0; i < 50; i++) {
+      try { if ((await fetch(base)).status === 200) return; } catch { /* starting */ }
+      await sleep(100);
+    }
+  };
+  const join = () => new Promise((resolve) => {
+    const s = io(base, { transports: ['websocket'], forceNew: true, reconnection: false });
+    s.on('connect', () => resolve(s));
+  });
+  let srv = start();
+  await up();
+  const open = [];
+  try {
+    const white = await join(); open.push(white);
+    const created = await call(white, 'createGame', { timeControl: '5+0' });
+    const black = await join(); open.push(black);
+    const joined = await call(black, 'joinGame', { gameId: created.gameId });
+    await call(black, 'setName', { name: 'Rohan' });
+    await call(white, 'makeMove', { from: 'e2', to: 'e4' });
+    const last = await call(black, 'makeMove', { from: 'e7', to: 'e5' });
+    const snapshot = { ...last.state, pgn: last.state.pgn };
+    assert.ok(snapshot.seatHashes.w && snapshot.seatHashes.b, 'both seat hashes are shared');
+
+    // The server restarts and loses every game
+    srv.kill();
+    await sleep(300);
+    srv = start();
+    await up();
+
+    const black2 = await join(); open.push(black2);
+    const gone = await call(black2, 'joinGame', { gameId: created.gameId, token: joined.token });
+    assert.equal(gone.ok, false, 'the new server has never heard of the game');
+    const back = await call(black2, 'restoreGame', { gameId: created.gameId, token: joined.token, snapshot });
+    assert.equal(back.ok, true);
+    assert.equal(back.color, 'b');
+    assert.equal(back.state.pgn, snapshot.pgn, 'same moves');
+    assert.equal(back.state.blackName, 'Rohan', 'same names');
+
+    const white2 = await join(); open.push(white2);
+    const whiteBack = await call(white2, 'joinGame', { gameId: created.gameId, token: created.token });
+    assert.equal(whiteBack.color, 'w', 'White gets their seat back with their own key');
+    assert.ok((await call(white2, 'makeMove', { from: 'g1', to: 'f3' })).ok, 'and the game goes on');
+
+    const stranger = await join(); open.push(stranger);
+    assert.equal((await call(stranger, 'joinGame', { gameId: created.gameId })).full, true, 'still private');
+    const again = await call(stranger, 'restoreGame', { gameId: created.gameId, token: 'x', snapshot });
+    assert.equal(again.ok, false, 'a game that exists cannot be restored over');
+    const forged = await call(stranger, 'restoreGame', { gameId: 'zzzz', token: 'not-a-seat-key', snapshot });
+    assert.equal(forged.ok, false, 'a key that matches no seat restores nothing');
+    const badMoves = await call(stranger, 'restoreGame', {
+      gameId: 'yyyy', token: joined.token, snapshot: { ...snapshot, pgn: '1. e4 e5 2. Ke3 Ke6' },
+    });
+    assert.equal(badMoves.ok, false, 'illegal moves in the copy are rejected');
+  } finally {
+    for (const s of open) s.close();
+    srv.kill();
+  }
+});
