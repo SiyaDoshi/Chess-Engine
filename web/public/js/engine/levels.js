@@ -11,7 +11,7 @@
 import { search, MATE } from './search.js';
 
 export const LEVELS = {
-  easy: { label: 'Easy', depth: 2, timeMs: 400, mistakeChance: 0.25, mistakeChoices: 4 },
+  easy: { label: 'Easy', depth: 3, timeMs: 600, mistakeChance: 0.15, mistakeChoices: 3 },
   medium: { label: 'Medium', depth: 4, timeMs: 1000, mistakeChance: 0 },
   hard: { label: 'Hard', depth: 12, timeMs: 2500, mistakeChance: 0 },
 };
@@ -19,7 +19,7 @@ export const LEVELS = {
 export const DEFAULT_LEVEL = 'medium';
 
 /** A "mistake" may cost at most this much compared to the best move. */
-const MAX_MISTAKE_CP = 250;
+const MAX_MISTAKE_CP = 150;
 
 /**
  * Score every legal move with a short search (the opponent's best reply,
