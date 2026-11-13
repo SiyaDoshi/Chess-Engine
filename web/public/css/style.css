@@ -1259,6 +1259,30 @@ body:not([data-bg="light"]) .captured img {
 
 /* Move list */
 .moves-card .muted { font-size: 0.88rem; }
+.review-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin: 0 0 0.55rem;
+  padding: 0.5rem 0.55rem 0.5rem 0.7rem;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+.review-bar .small-btn {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+/* The board gets a coloured frame while it shows an earlier position */
+.board-wrap.reviewing {
+  box-shadow: 0 0 0 3px var(--accent), 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+.board-wrap.reviewing .board { filter: saturate(0.75); }
+
 .moves-hint {
   margin: 0.5rem 0 0;
   font-size: 0.78rem;

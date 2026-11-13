@@ -268,9 +268,13 @@
 
         <div class="panel-card moves-card">
           <div class="card-title">Moves</div>
+          <div id="review-bar" class="review-bar" role="status" hidden>
+            <span id="review-text">Looking back</span>
+            <button type="button" id="btn-live" class="small-btn">Back to game</button>
+          </div>
           <ol id="move-list" class="move-list" aria-label="Moves played"></ol>
           <p id="move-list-empty" class="muted">No moves yet</p>
-          <p class="moves-hint">← → to review moves</p>
+          <p class="moves-hint">Click a move or use ← → to look back. The game itself doesn't change.</p>
         </div>
 
         <div id="play-controls" class="play-controls" hidden>

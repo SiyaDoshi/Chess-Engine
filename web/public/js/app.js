@@ -154,6 +154,11 @@ function soundForNewMove(game) {
  */
 let reviewPly = null; // null = showing the live position
 let reviewSavedInteractive = null;
+const reviewBarEl = document.getElementById('review-bar');
+const reviewTextEl = document.getElementById('review-text');
+document.getElementById('btn-live').addEventListener('click', () => {
+  if (chess) showPly(chess.history().length);
+});
 
 function showPly(ply) {
   if (!chess || mode === 'menu') return;
@@ -647,7 +652,28 @@ function renderMoveList(game) {
   moveListEl.replaceChildren(...items);
   moveListEl.classList.toggle('reviewing', reviewPly !== null);
   moveListEmptyEl.hidden = sans.length > 0;
-  moveListEl.scrollTop = moveListEl.scrollHeight;
+  renderReviewBar(sans);
+  // Follow the newest move, or keep the move being looked at in view
+  const viewing = moveListEl.querySelector('.viewing');
+  if (viewing) viewing.scrollIntoView({ block: 'nearest' });
+  else moveListEl.scrollTop = moveListEl.scrollHeight;
+}
+
+/** While looking back: say which move is shown and that the game is unchanged. */
+function renderReviewBar(sans) {
+  const reviewing = reviewPly !== null;
+  reviewBarEl.hidden = !reviewing;
+  boardEl.closest('.board-wrap').classList.toggle('reviewing', reviewing);
+  if (!reviewing) return;
+  const shown = reviewPly === 0
+    ? 'the start'
+    : `${Math.ceil(reviewPly / 2)}${reviewPly % 2 ? '.' : '...'} ${sans[reviewPly - 1]}`;
+  const clock = mode !== 'menu' && !gameOver ? ' Clocks keep running.' : '';
+  reviewTextEl.innerHTML = '';
+  const strong = document.createElement('strong');
+  strong.textContent = `Viewing ${shown}`;
+  reviewTextEl.append(strong, document.createElement('br'),
+    `The game is still at move ${Math.ceil(sans.length / 2)}.${clock}`);
 }
 
 const START_COUNT = { p: 8, n: 2, b: 2, r: 2, q: 1 };
