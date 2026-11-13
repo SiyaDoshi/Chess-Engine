@@ -114,6 +114,8 @@ function publicState(game, gameId) {
     fen: game.chess.fen(),
     pgn: game.chess.pgn(), // full move history, so clients can show the move list
     turn: game.chess.turn(),
+    whiteName: game.names.w,
+    blackName: game.names.b,
     whiteConnected: !!game.whiteId,
     blackConnected: !!game.blackId,
     isCheckmate: game.chess.isCheckmate(),
@@ -165,6 +167,16 @@ function safe(event, handler) {
 }
 
 const SQUARE = /^[a-h][1-8]$/;
+const MAX_NAME = 20;
+
+/** A display name: plain printable text, at most 20 characters, or ''. */
+function cleanName(name) {
+  if (typeof name !== 'string') return '';
+  return [...name.replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/\s+/g, ' ').trim()]
+    .slice(0, MAX_NAME)
+    .join('')
+    .trim();
+}
 
 io.on('connection', (socket) => {
   console.log('Connected:', socket.id);
@@ -183,6 +195,7 @@ io.on('connection', (socket) => {
       chess: new Chess(),
       whiteId: socket.id,
       blackId: null,
+      names: { w: '', b: '' }, // display names; empty means "White" / "Black"
       clocks: createClockState(timeControl),
     });
 
@@ -233,6 +246,7 @@ io.on('connection', (socket) => {
 
     if (!game.whiteId) {
       game.whiteId = socket.id;
+      game.names.w = '';
       socket.join(id);
       socket.data.gameId = id;
       socket.data.color = 'w';
@@ -245,6 +259,7 @@ io.on('connection', (socket) => {
 
     if (!game.blackId) {
       game.blackId = socket.id;
+      game.names.b = '';
       socket.join(id);
       socket.data.gameId = id;
       socket.data.color = 'b';
@@ -265,6 +280,20 @@ io.on('connection', (socket) => {
       state: publicState(game, id),
       note: 'Both seats taken — you are spectating.',
     });
+  }));
+
+  // A player names themselves; spectators can't. Everyone in the room sees it.
+  socket.on('setName', safe('setName', ({ name }, ack) => {
+    const id = socket.data.gameId;
+    const game = id && games.get(id);
+    const color = socket.data.color;
+    if (!game || (color !== 'w' && color !== 'b')) {
+      ack({ ok: false, error: 'Only players can set a name.' });
+      return;
+    }
+    game.names[color] = cleanName(name);
+    emitState(id);
+    ack({ ok: true, name: game.names[color] });
   }));
 
   socket.on('makeMove', safe('makeMove', ({ from, to, promotion }, ack) => {
