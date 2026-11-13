@@ -1309,11 +1309,53 @@ function saveSeat(gameId, token) {
 }
 
 
+/*
+ * Each browser keeps a copy of the online game (moves, clocks, names and the
+ * hashes of both seat keys). If the server restarted and lost the game, the
+ * first player back restores it from that copy and the other player rejoins
+ * it with their own key, so a restart doesn't end the game.
+ */
+const snapshotKey = (gameId) => `gambit-game-${gameId}`;
+function saveSnapshot(state) {
+  if (!state?.gameId || !state.seatHashes) return;
+  const snapshot = {
+    pgn: state.pgn,
+    timeControl: state.timeControl,
+    whiteMs: state.whiteMs,
+    blackMs: state.blackMs,
+    whiteName: state.whiteName,
+    blackName: state.blackName,
+    seatHashes: state.seatHashes,
+  };
+  try { localStorage.setItem(snapshotKey(state.gameId), JSON.stringify(snapshot)); } catch { /* full or private */ }
+}
+function loadSnapshot(gameId) {
+  try { return JSON.parse(localStorage.getItem(snapshotKey(gameId)) || 'null'); } catch { return null; }
+}
+
+/** Join a game; if the server doesn't have it any more, restore it from our copy. */
+function joinOrRestore(s, gameId, done) {
+  const keys = seatKeys(gameId);
+  s.emit('joinGame', { gameId, ...keys }, (res) => {
+    const snapshot = loadSnapshot(gameId);
+    const token = keys.token || keys.backupToken;
+    if (res.ok || res.full || !snapshot || !token) {
+      done(res);
+      return;
+    }
+    s.emit('restoreGame', { gameId, token, snapshot }, (restored) => {
+      // The other player restored it a moment earlier: just join it
+      if (!restored.ok && restored.exists) s.emit('joinGame', { gameId, ...keys }, done);
+      else done(restored.ok ? restored : res);
+    });
+  });
+}
+
 /** Rejoin the current online game after the connection came back. */
 function rejoinOnlineGame() {
   if (mode !== 'online' || !onlineGameId || !socket) return;
   const gameId = onlineGameId;
-  socket.emit('joinGame', { gameId, ...seatKeys(gameId) }, (res) => {
+  joinOrRestore(socket, gameId, (res) => {
     if (mode !== 'online' || onlineGameId !== gameId) return;
     if (!res.ok) {
       showError(gameError, res.full
@@ -1388,7 +1430,7 @@ function joinOnlineGame(gameId) {
   showError(menuError, null);
   const s = ensureSocket();
   const id = String(gameId).trim().toLowerCase();
-  s.emit('joinGame', { gameId: id, ...seatKeys(id) }, (res) => {
+  joinOrRestore(s, id, (res) => {
     if (!res.ok) {
       // Full game, dead or mistyped link: explain it on the home page and drop /g/... from the URL
       showLinkNotice(res.full);
@@ -1454,6 +1496,7 @@ function applyOnlineState(state) {
 
   applyOnlineClocks(state);
   syncOnlineNames(state);
+  saveSnapshot(state);
 
   const both = state.whiteConnected && state.blackConnected;
   updateModeUI({ onlineLobby: !both, onlinePlaying: both });
