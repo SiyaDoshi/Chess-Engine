@@ -79,6 +79,7 @@ let chess = null;
 /** @type {'w'|'b'|'spectator'|null} */
 let myColor = null;
 let socket = null;
+let onStuckTimer = null;
 let connectionLost = false; // set while the online connection is down
 let onlineGameId = null;
 let aiThinking = false;
@@ -124,6 +125,13 @@ const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
 const board = new ChessBoard(boardEl, {
   onMove: handleBoardMove,
+  // Picking a piece that can't move while in check: say why, without naming the moves
+  onStuck: () => {
+    if (!chess?.isCheck() || reviewPly !== null) return;
+    showError(gameError, 'Your king is in check. Block the check, capture the attacking piece, or move the king.');
+    clearTimeout(onStuckTimer);
+    onStuckTimer = setTimeout(() => showError(gameError, null), 4000);
+  },
   onRender: (game) => {
     // Any live update (a new move, undo, reset) ends move review.
     if (game === chess && reviewPly !== null) {
@@ -197,6 +205,23 @@ document.body.dataset.theme = themeSelect.value || 'green';
 themeSelect.addEventListener('change', () => {
   document.body.dataset.theme = themeSelect.value;
   localStorage.setItem('chess-theme', themeSelect.value);
+});
+
+// Show possible moves (the dots) when a piece is picked up; on by default
+const legalToggle = document.getElementById('legal-toggle');
+legalToggle.checked = localStorage.getItem('chess-legal') !== 'off';
+document.body.classList.toggle('hide-legal', !legalToggle.checked);
+legalToggle.addEventListener('change', () => {
+  document.body.classList.toggle('hide-legal', !legalToggle.checked);
+  localStorage.setItem('chess-legal', legalToggle.checked ? 'on' : 'off');
+});
+
+// "?" in the engine box: what score, depth, positions and best line mean
+const engineHelpBtn = document.getElementById('btn-engine-help');
+engineHelpBtn.addEventListener('click', () => {
+  const help = document.getElementById('engine-help');
+  help.hidden = !help.hidden;
+  engineHelpBtn.setAttribute('aria-expanded', String(!help.hidden));
 });
 
 // Sound on/off
@@ -328,7 +353,10 @@ document.querySelectorAll('[data-mode]').forEach((btn) => {
       savePvpNames();
       startLocal('local-pvp');
     }
-    if (m === 'local-ai') startLocal('local-ai');
+    if (m === 'local-ai') {
+      applyEngineColorChoice();
+      startLocal('local-ai');
+    }
     if (m === 'online-create') createOnlineGame();
   });
 });
@@ -339,7 +367,7 @@ document.querySelectorAll('[data-mode]').forEach((btn) => {
  * online) share one saved name.
  */
 const homeMain = document.getElementById('home-main');
-const homePanels = ['pvp-panel', 'online-panel'].map((id) => document.getElementById(id));
+const homePanels = ['engine-panel', 'pvp-panel', 'online-panel'].map((id) => document.getElementById(id));
 function showHomePanel(id) {
   homeMain.hidden = !!id;
   for (const panel of homePanels) panel.hidden = panel.id !== id;
@@ -349,10 +377,46 @@ function showHomePanel(id) {
     document.getElementById('pvp-name-b').value = storedName('chess-name-b');
     document.getElementById('pvp-name-w').focus();
   }
+  if (id === 'engine-panel') renderEngineChoices();
   if (id) document.getElementById('link-notice').hidden = true;
+}
+
+/* Play the engine panel: difficulty and colour as buttons (they set the same
+   options as the game's top bar). "Random" picks a colour when the game starts. */
+let engineColorChoice = localStorage.getItem('chess-color-choice') || playerColor;
+function renderEngineChoices() {
+  for (const btn of document.querySelectorAll('#engine-level-choice [data-level]')) {
+    btn.setAttribute('aria-checked', String(btn.dataset.level === levelSelect.value));
+  }
+  for (const btn of document.querySelectorAll('#engine-color-choice [data-color]')) {
+    btn.setAttribute('aria-checked', String(btn.dataset.color === engineColorChoice));
+  }
+}
+document.getElementById('engine-level-choice').addEventListener('click', (e) => {
+  const level = e.target.closest('[data-level]')?.dataset.level;
+  if (!level) return;
+  levelSelect.value = level;
+  levelSelect.dispatchEvent(new Event('change'));
+  renderEngineChoices();
+});
+document.getElementById('engine-color-choice').addEventListener('click', (e) => {
+  const color = e.target.closest('[data-color]')?.dataset.color;
+  if (!color) return;
+  engineColorChoice = color;
+  localStorage.setItem('chess-color-choice', color);
+  renderEngineChoices();
+});
+function applyEngineColorChoice() {
+  const color = engineColorChoice === 'random' ? (Math.random() < 0.5 ? 'w' : 'b') : engineColorChoice;
+  if (color !== playerColor) {
+    playerColor = color;
+    colorSelect.value = color;
+    localStorage.setItem('chess-color', color);
+  }
 }
 const showOnlinePanel = (open) => showHomePanel(open ? 'online-panel' : null);
 document.getElementById('btn-play-online').addEventListener('click', () => showHomePanel('online-panel'));
+document.getElementById('btn-play-engine').addEventListener('click', () => showHomePanel('engine-panel'));
 document.getElementById('btn-two-player').addEventListener('click', () => showHomePanel('pvp-panel'));
 for (const back of document.querySelectorAll('[data-back]')) {
   back.addEventListener('click', () => showHomePanel(null));
@@ -365,6 +429,9 @@ function savePvpNames() {
   storeName('chess-name-w', cleanName(document.getElementById('pvp-name-w').value));
   storeName('chess-name-b', cleanName(document.getElementById('pvp-name-b').value));
 }
+document.getElementById('engine-name').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.querySelector('#engine-panel [data-mode="local-ai"]').click();
+});
 for (const id of ['pvp-name-w', 'pvp-name-b']) {
   document.getElementById(id).addEventListener('keydown', (e) => {
     if (e.key === 'Enter') document.querySelector('#pvp-panel [data-mode="local-pvp"]').click();
@@ -511,7 +578,7 @@ function renderClocks() {
   clockBlackEl.classList.toggle('flagged', timedOut === 'b');
 
   // Pulsing dots next to the engine's name while it searches
-  const thinkingSide = mode === 'local-ai' && aiThinking ? (myColor === 'w' ? 'b' : 'w') : null;
+  const thinkingSide = null; // the status line says whose turn it is; no extra dots
   clockWhiteEl.querySelector('.thinking').hidden = thinkingSide !== 'w';
   clockBlackEl.querySelector('.thinking').hidden = thinkingSide !== 'b';
 }
@@ -689,7 +756,7 @@ function renderMoveList(game) {
     for (const j of [i, i + 1]) {
       const span = document.createElement('span');
       span.className = 'move-san';
-      span.textContent = sans[j] ?? '';
+      if (sans[j]) span.append(...sanNodes(sans[j], j % 2 === 0 ? 'w' : 'b'));
       if (sans[j]) span.dataset.ply = String(j + 1); // position after this move
       if (j === sans.length - 1) span.classList.add('latest');
       if (reviewPly !== null && j === reviewPly - 1) span.classList.add('viewing');
@@ -707,6 +774,42 @@ function renderMoveList(game) {
   else moveListEl.scrollTop = moveListEl.scrollHeight;
 }
 
+/**
+ * A move like "Nf3" drawn the way chess sites show it: a small knight
+ * icon, then "f3". The letter stays in the text for screen readers and
+ * copying. Pawn moves ("e4") and castling ("O-O") have no piece letter.
+ */
+const PIECE_NAMES = { K: 'king', Q: 'queen', R: 'rook', B: 'bishop', N: 'knight' };
+function pieceIcon(color, letter) {
+  const wrap = document.createElement('span');
+  wrap.className = 'san-piece';
+  const img = document.createElement('img');
+  img.src = window.pieceUrl(color + letter);
+  img.alt = '';
+  const text = document.createElement('span');
+  text.className = 'san-letter'; // zero-size text: read aloud and copied, not shown
+  text.textContent = letter;
+  wrap.title = PIECE_NAMES[letter];
+  wrap.append(img, text);
+  return wrap;
+}
+function sanNodes(san, color) {
+  const nodes = [];
+  let rest = san;
+  if (PIECE_NAMES[rest[0]]) {
+    nodes.push(pieceIcon(color, rest[0]));
+    rest = rest.slice(1);
+  }
+  const promo = rest.match(/=([QRBN])/);
+  if (promo) {
+    const [before, after] = rest.split(promo[0]);
+    nodes.push(before + '=', pieceIcon(color, promo[1]), after);
+  } else {
+    nodes.push(rest);
+  }
+  return nodes;
+}
+
 /** While looking back: say which move is shown and that the game is unchanged. */
 function renderReviewBar(sans) {
   const reviewing = reviewPly !== null;
@@ -716,7 +819,12 @@ function renderReviewBar(sans) {
   const shown = reviewPly === 0
     ? 'the start'
     : `${Math.ceil(reviewPly / 2)}${reviewPly % 2 ? '.' : '...'} ${sans[reviewPly - 1]}`;
-  reviewTextEl.textContent = `Viewing ${shown}`;
+  if (reviewPly === 0) {
+    reviewTextEl.textContent = 'Viewing the start';
+  } else {
+    const num = `${Math.ceil(reviewPly / 2)}${reviewPly % 2 ? '.' : '...'} `;
+    reviewTextEl.replaceChildren('Viewing ', num, ...sanNodes(sans[reviewPly - 1], reviewPly % 2 ? 'w' : 'b'));
+  }
 }
 
 const START_COUNT = { p: 8, n: 2, b: 2, r: 2, q: 1 };
@@ -882,7 +990,17 @@ function showEngineInfo(result, fenBefore) {
       break;
     }
   }
-  engineLineEl.textContent = san.join(' ') || '–';
+  if (!san.length) {
+    engineLineEl.textContent = '–';
+    return;
+  }
+  const mover = new Chess(fenBefore).turn();
+  const parts = [];
+  san.forEach((move, i) => {
+    if (i) parts.push(' ');
+    parts.push(...sanNodes(move, (i % 2 === 0) === (mover === 'w') ? 'w' : 'b'));
+  });
+  engineLineEl.replaceChildren(...parts);
 }
 
 /** Flip the board and keep the player at the bottom, the opponent on top. */
@@ -946,6 +1064,7 @@ function startHomePreview() {
   previewBoard.setInteractive(false);
   previewBoard.setGame(previewChess);
   previewEl.classList.add('preview-board');
+  revealHome();
 
   const step = async () => {
     if (run !== previewRun) return;
@@ -977,6 +1096,25 @@ function startHomePreview() {
     previewTimer = setTimeout(step, PREVIEW_MOVE_MS);
   };
   previewTimer = setTimeout(step, 900);
+}
+
+/**
+ * Show the home page in one go: wait until the board's pieces and the title
+ * font are ready (at most 2.5s), then fade everything in and start the logo.
+ */
+function revealHome() {
+  // A property on the function, not a let: this first runs while the page is still loading
+  if (revealHome.done) return;
+  const images = [...document.querySelectorAll('#preview-board img, .logo-i img')];
+  const ready = Promise.all([
+    document.fonts?.ready,
+    ...images.map((img) => img.decode?.().catch(() => {})),
+  ]);
+  const timeout = new Promise((resolve) => setTimeout(resolve, 2500));
+  Promise.race([ready, timeout]).then(() => {
+    revealHome.done = true;
+    requestAnimationFrame(() => document.body.classList.add('home-ready'));
+  });
 }
 
 function stopHomePreview() {
@@ -1103,7 +1241,7 @@ function updateStatus() {
   }
 
   if (mode === 'local-ai' && (aiThinking || chess.turn() !== myColor)) {
-    statusEl.textContent = 'Gambit is thinking…';
+    statusEl.textContent = turnText(myColor === 'w' ? 'b' : 'w');
     return;
   }
   statusEl.textContent = turnText(chess.turn(), chess.isCheck());
@@ -1256,7 +1394,7 @@ async function runAiTurn() {
   aiThinking = true;
   const token = ++aiToken;
   board.setInteractive(false);
-  statusEl.textContent = 'Gambit is thinking…';
+  statusEl.textContent = turnText(myColor === 'w' ? 'b' : 'w');
   lastTickAt = Date.now();
   renderClocks();
 

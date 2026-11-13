@@ -18,6 +18,19 @@
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="stylesheet" href="/css/style.css" />
+  <!-- The home board's pieces, fetched with the page so the board appears complete -->
+  <link rel="preload" as="image" href="/pieces/kosal/wK.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/wQ.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/wR.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/wB.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/wN.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/wP.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/bK.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/bQ.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/bR.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/bB.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/bN.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/bP.svg" />
   <script src="/socket.io/socket.io.js"></script>
 </head>
 <body class="view-home" data-theme="classic" data-bg="dark">
@@ -52,9 +65,8 @@
         </div>
         <div id="home-main">
         <h2>Play</h2>
-          <input id="home-name" class="my-name name-input-home" type="text" maxlength="20" placeholder="Your name" aria-label="Your name" autocomplete="nickname" spellcheck="false" />
         <div class="menu-actions">
-          <button type="button" data-mode="local-ai" class="mode-primary">
+          <button type="button" id="btn-play-engine" class="mode-primary">
             <span class="mode-icon" aria-hidden="true">
               <img src="/assets/logo/knight.svg" alt="" width="34" height="34" />
             </span>
@@ -85,6 +97,27 @@
             </button>
           </div>
         </div>
+        </div>
+        <div id="engine-panel" class="online-panel" hidden>
+          <button type="button" class="back-btn" data-back>
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg>
+            Back
+          </button>
+          <h2>Play the engine</h2>
+          <input id="engine-name" class="my-name name-input-home" type="text" maxlength="20" placeholder="Your name" aria-label="Your name" autocomplete="nickname" spellcheck="false" />
+          <div class="choice-label">Difficulty</div>
+          <div class="choice-row" id="engine-level-choice" role="radiogroup" aria-label="Difficulty">
+            <button type="button" role="radio" data-level="easy">Easy</button>
+            <button type="button" role="radio" data-level="medium">Medium</button>
+            <button type="button" role="radio" data-level="hard">Hard</button>
+          </div>
+          <div class="choice-label">Play as</div>
+          <div class="choice-row" id="engine-color-choice" role="radiogroup" aria-label="Play as">
+            <button type="button" role="radio" data-color="w">White</button>
+            <button type="button" role="radio" data-color="b">Black</button>
+            <button type="button" role="radio" data-color="random">Random</button>
+          </div>
+          <button type="button" data-mode="local-ai" class="primary-btn create-btn">Start game</button>
         </div>
         <div id="pvp-panel" class="online-panel" hidden>
           <button type="button" class="back-btn" data-back>
@@ -192,6 +225,11 @@
             <input type="checkbox" id="sound-toggle" checked />
           </label>
 
+          <label class="nav-field nav-toggle">
+            <span>Show possible moves</span>
+            <input type="checkbox" id="legal-toggle" checked />
+          </label>
+
           <label class="nav-field">
             <span>Background</span>
             <select id="bg-select">
@@ -275,15 +313,24 @@
 
         <div id="engine-card" class="panel-card engine-card" hidden>
           <div class="engine-head">
-            <span class="engine-title">Engine</span>
-            <span id="engine-eval" class="engine-eval">0.0</span>
+            <span class="engine-title">Engine
+              <button type="button" id="btn-engine-help" class="help-btn" aria-expanded="false" aria-controls="engine-help" title="What do these mean?">?</button>
+            </span>
+            <span id="engine-eval" class="engine-eval" title="Who is ahead, in pawns: + is good for White, - for Black. M3 means mate in 3.">0.0</span>
           </div>
           <dl class="engine-stats">
-            <div><dt>Depth</dt><dd id="engine-depth">–</dd></div>
-            <div><dt>Positions</dt><dd id="engine-nodes">–</dd></div>
-            <div><dt>Time</dt><dd id="engine-time">–</dd></div>
+            <div title="How many moves ahead Gambit looked (one move by either side counts as one)"><dt>Depth</dt><dd id="engine-depth">–</dd></div>
+            <div title="How many positions Gambit examined to choose its move"><dt>Positions</dt><dd id="engine-nodes">–</dd></div>
+            <div title="How long Gambit thought about its move"><dt>Time</dt><dd id="engine-time">–</dd></div>
           </dl>
-          <p class="engine-line"><span class="engine-line-label">Best line</span> <span id="engine-line">–</span></p>
+          <dl id="engine-help" class="engine-help" hidden>
+            <div><dt>Score</dt><dd>Who is ahead, in pawns. + is good for White, − for Black; 1.0 is about one pawn. M3 means checkmate in 3.</dd></div>
+            <div><dt>Depth</dt><dd>How many moves ahead Gambit looked. Each move by either side counts as one.</dd></div>
+            <div><dt>Positions</dt><dd>How many positions it examined to pick its move.</dd></div>
+            <div><dt>Time</dt><dd>How long it thought.</dd></div>
+            <div><dt>Best line</dt><dd>The moves it expects next if both sides play its way.</dd></div>
+          </dl>
+          <p class="engine-line" title="The moves Gambit expects next, if both sides play its way"><span class="engine-line-label">Best line</span> <span id="engine-line">–</span></p>
         </div>
 
         <div class="panel-card moves-card">
