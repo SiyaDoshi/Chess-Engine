@@ -184,10 +184,10 @@ document.addEventListener('keydown', (e) => {
   e.preventDefault();
 });
 
-// Board colors (the homepage preview always uses classic brown via CSS).
-const savedTheme = localStorage.getItem('chess-theme') || 'classic';
+// Board colors (the homepage preview always uses sage green via CSS).
+const savedTheme = localStorage.getItem('chess-theme') || 'green';
 themeSelect.value = savedTheme;
-document.body.dataset.theme = themeSelect.value || 'classic';
+document.body.dataset.theme = themeSelect.value || 'green';
 themeSelect.addEventListener('change', () => {
   document.body.dataset.theme = themeSelect.value;
   localStorage.setItem('chess-theme', themeSelect.value);

@@ -36,8 +36,8 @@
   --title-filter: brightness(0) invert(92%) sepia(12%);
   --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-brand: "Outfit", "Inter", system-ui, sans-serif;
-  --light-sq: #f0d9b5;
-  --dark-sq: #b58863;
+  --light-sq: #e7ebd8; /* sage green: the default board */
+  --dark-sq: #93a883;
 }
 
 body[data-bg="light"] {
@@ -55,11 +55,11 @@ body[data-bg="light"] {
   --title-filter: brightness(0.15) contrast(1.15);
 }
 
-body[data-theme="classic"] { --light-sq: #f0d9b5; --dark-sq: #b58863; }
-body[data-theme="green"] { --light-sq: #eeeed2; --dark-sq: #769656; }
+body[data-theme="classic"] { --light-sq: #eedcc2; --dark-sq: #a67d5d; }
+body[data-theme="green"] { --light-sq: #e7ebd8; --dark-sq: #93a883; }
 body[data-theme="blue"] { --light-sq: #dee3e6; --dark-sq: #8ca2ad; }
 body[data-theme="gray"] { --light-sq: #e8e8e8; --dark-sq: #7d7d7d; }
-body[data-theme="purple"] { --light-sq: #eae2f5; --dark-sq: #8877b7; }
+body[data-theme="purple"] { --light-sq: #f2edf8; --dark-sq: #b9a8da; }
 
 * { box-sizing: border-box; }
 
@@ -333,9 +333,9 @@ body.view
   aspect-ratio: 1 / 1;
   border-radius: 16px;
   overflow: hidden;
-  background: #b58863;
-  --light-sq: #f0d9b5;
-  --dark-sq: #b58863;
+  background: #93a883;
+  --light-sq: #e7ebd8;
+  --dark-sq: #93a883;
   border: 1px solid rgba(232, 210, 175, 0.45);
   box-shadow:
     0 1px 0 rgba(255, 240, 210, 0.3) inset,
