@@ -24,6 +24,8 @@ import {
   sameMove,
   historyLength,
   positionKey,
+  gamePositionCount,
+  halfMoveClock,
 } from './board.js';
 
 export const MATE = 100_000;
@@ -116,6 +118,7 @@ export function search(chess, opts) {
   let nodes = 0;
   let ttHits = 0;
   let pvMoves = []; // best line from the previous depth, searched first
+  const pathKeys = []; // positions on the line currently being searched
 
   function checkTime() {
     // Checking the clock is slow-ish, so only do it every 1024 positions.
@@ -161,12 +164,27 @@ export function search(chess, opts) {
     return alpha;
   }
 
-  /** Returns { score, line } where line is the best sequence from here. */
+  /**
+   * Returns { score, line, pathDraw } where line is the best sequence from
+   * here. pathDraw is true when a repetition or 50-move draw below this
+   * node may have shaped the score: such scores depend on how the position
+   * was reached, so they must not be saved in the transposition table.
+   */
   function negamax(depth, ply, alpha, beta) {
     nodes++;
     checkTime();
 
-    const key = options.tt ? positionKey(chess) : null;
+    // Draws the engine must see coming: a position that already occurred
+    // (earlier in the game or earlier on this line) and the 50-move rule.
+    // Scoring the first repeat as a draw stops a winning engine from
+    // shuffling into a threefold repetition, and lets a losing one aim for it.
+    const here = positionKey(chess);
+    if (ply > 0) {
+      if (halfMoveClock(chess) >= 100) return { score: 0, line: [], pathDraw: true };
+      if (gamePositionCount(chess, here) > 0 || pathKeys.includes(here)) return { score: 0, line: [], pathDraw: true };
+    }
+
+    const key = options.tt ? here : null;
     let ttMove = null;
     if (key !== null) {
       const entry = table.get(key);
@@ -176,9 +194,9 @@ export function search(chess, opts) {
         if (ply > 0 && entry.depth >= depth) {
           const score = fromTable(entry.score, ply);
           const line = entry.move ? [entry.move] : [];
-          if (entry.flag === EXACT) { ttHits++; return { score, line }; }
-          if (entry.flag === LOWER && score >= beta) { ttHits++; return { score, line }; }
-          if (entry.flag === UPPER && score <= alpha) { ttHits++; return { score, line }; }
+          if (entry.flag === EXACT) { ttHits++; return { score, line, pathDraw: false }; }
+          if (entry.flag === LOWER && score >= beta) { ttHits++; return { score, line, pathDraw: false }; }
+          if (entry.flag === UPPER && score <= alpha) { ttHits++; return { score, line, pathDraw: false }; }
         }
       }
     }
@@ -188,18 +206,25 @@ export function search(chess, opts) {
 
     if (moves.length === 0) {
       // Checkmate (faster mates score higher) or stalemate (draw).
-      return { score: inCheck(chess) ? -MATE + ply : 0, line: [] };
+      return { score: inCheck(chess) ? -MATE + ply : 0, line: [], pathDraw: false };
     }
     if (depth === 0) {
-      return { score: options.quiescence ? quiesce(alpha, beta) : staticScore(), line: [] };
+      return { score: options.quiescence ? quiesce(alpha, beta) : staticScore(), line: [], pathDraw: false };
     }
 
-    let best = { score: -Infinity, line: [] };
+    let best = { score: -Infinity, line: [], pathDraw: false };
+    let pathDraw = false;
+    pathKeys.push(here);
     for (const move of order(moves, ply, ttMove)) {
       makeMove(chess, move);
-      const child = negamax(depth - 1, ply + 1, -beta, -alpha);
-      undoMove(chess);
+      let child;
+      try {
+        child = negamax(depth - 1, ply + 1, -beta, -alpha);
+      } finally {
+        undoMove(chess);
+      }
       const score = -child.score;
+      if (child.pathDraw) pathDraw = true;
 
       if (score > best.score) best = { score, line: [move, ...child.line] };
       if (options.alphaBeta) {
@@ -207,8 +232,10 @@ export function search(chess, opts) {
         if (alpha >= beta) break; // the opponent will never allow this line
       }
     }
+    pathKeys.pop();
+    best.pathDraw = pathDraw;
 
-    if (key !== null) {
+    if (key !== null && !pathDraw) {
       let flag = EXACT;
       if (best.score <= alphaAtStart) flag = UPPER; // nothing beat alpha: an upper bound
       else if (best.score >= beta) flag = LOWER; // cut off early: a lower bound
@@ -250,7 +277,7 @@ export function search(chess, opts) {
       result = {
         move: line.length ? toPublicMove(line[0]) : null,
         line: line.map(toPublicMove),
-        score: score * sign, // centipawns, White's point of view
+        score: score * sign || 0, // centipawns, White's point of view (no -0)
         depth,
         nodes,
         ttHits,
@@ -264,6 +291,7 @@ export function search(chess, opts) {
       // Restore the position: unwind any moves still on the board.
       const extra = historyLength(chess) - movesPlayedBefore;
       for (let i = 0; i < extra; i++) undoMove(chess);
+      pathKeys.length = 0;
       break;
     }
   }

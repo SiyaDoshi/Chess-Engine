@@ -39,6 +39,16 @@ export function positionKey(chess) {
   return chess._hash;
 }
 
+/** How many times a position (by key) occurred in the moves actually played. */
+export function gamePositionCount(chess, key) {
+  return chess._positionCount.get(key) ?? 0;
+}
+
+/** Half-moves since the last capture or pawn move (for the 50-move rule). */
+export function halfMoveClock(chess) {
+  return chess._halfMoves;
+}
+
 /** Number of moves played so far (used to unwind an interrupted search). */
 export function historyLength(chess) {
   return chess._history.length;
