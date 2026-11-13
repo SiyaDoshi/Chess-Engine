@@ -16,7 +16,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const { Chess } = require('chess.js');
-const { randomBytes } = require('crypto');
+const { randomBytes, createHash } = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
@@ -117,6 +117,12 @@ function publicState(game, gameId) {
     fen: game.chess.fen(),
     pgn: game.chess.pgn(), // full move history, so clients can show the move list
     turn: game.chess.turn(),
+    // Hashes of the seat keys: each browser keeps them so that, if the server
+    // restarts, the game can be restored and both players get their seats back
+    seatHashes: {
+      w: game.tokens.w ? hashKey(game.tokens.w) : game.keyHashes?.w ?? null,
+      b: game.tokens.b ? hashKey(game.tokens.b) : game.keyHashes?.b ?? null,
+    },
     whiteName: game.names.w,
     blackName: game.names.b,
     whiteConnected: !!game.whiteId,
@@ -175,6 +181,23 @@ const EMPTY_GAME_GRACE_MS = Number(process.env.EMPTY_GAME_GRACE_MS ?? 120000);
 
 /** A private key for one seat, so its player (and only them) can rejoin. */
 const newSeatToken = () => randomBytes(16).toString('hex');
+const hashKey = (key) => createHash('sha256').update(String(key)).digest('hex');
+
+/**
+ * The seat a key opens, or null. A game restored after a server restart only
+ * knows the absent player's key by its hash, until they come back with it.
+ */
+function seatForKey(game, key) {
+  if (typeof key !== 'string' || !key) return null;
+  for (const color of ['w', 'b']) {
+    if (game.tokens[color] === key) return color;
+    if (!game.tokens[color] && game.keyHashes?.[color] === hashKey(key)) {
+      game.tokens[color] = key;
+      return color;
+    }
+  }
+  return null;
+}
 
 /** Put a socket in a seat, replacing any older connection of the same player. */
 function takeSeat(socket, game, id, color) {
@@ -246,7 +269,7 @@ io.on('connection', (socket) => {
       ack?.({ ok: false, error: 'Only the host can change the timer.' });
       return;
     }
-    if (game.tokens.b) {
+    if (game.tokens.b || game.keyHashes?.b) {
       ack?.({ ok: false, error: 'Timer locked once the opponent joins.' });
       return;
     }
@@ -274,19 +297,13 @@ io.on('connection', (socket) => {
       return;
     }
 
-    let color = null;
-    let rejoined = false;
-    if (typeof token === 'string' && token) {
-      if (token === game.tokens.w) color = 'w';
-      else if (token === game.tokens.b) color = 'b';
-      rejoined = !!color;
+    let color = seatForKey(game, token);
+    if (!color) {
+      const backup = seatForKey(game, backupToken);
+      if (backup && !game[backup === 'w' ? 'whiteId' : 'blackId']) color = backup;
     }
-    if (!color && typeof backupToken === 'string' && backupToken) {
-      if (backupToken === game.tokens.w && !game.whiteId) color = 'w';
-      else if (backupToken === game.tokens.b && !game.blackId) color = 'b';
-      rejoined = !!color;
-    }
-    if (!color && !game.tokens.b) {
+    const rejoined = !!color;
+    if (!color && !game.tokens.b && !game.keyHashes?.b) {
       color = 'b';
       game.tokens.b = newSeatToken();
       game.names.b = '';
@@ -301,6 +318,59 @@ io.on('connection', (socket) => {
     const state = publicState(game, id);
     socket.to(id).emit('playerUpdate', state);
     ack({ ok: true, gameId: id, color, token: game.tokens[color], rejoined, state });
+  }));
+
+  /*
+   * Restore a game the server no longer has (it restarted: a redeploy, or the
+   * host moving it). The returning player sends their copy of the game; the
+   * moves are replayed and checked like any other moves. Their key must match
+   * the seat they claim, and the other seat stays reserved for whoever holds
+   * the matching key.
+   */
+  socket.on('restoreGame', safe('restoreGame', ({ gameId, token, snapshot }, ack) => {
+    const id = typeof gameId === 'string' ? gameId.trim().toLowerCase() : '';
+    if (games.has(id)) {
+      ack({ ok: false, exists: true });
+      return;
+    }
+    const snap = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    const hashes = snap.seatHashes && typeof snap.seatHashes === 'object' ? snap.seatHashes : {};
+    const color = typeof token === 'string' && token
+      ? ['w', 'b'].find((c) => hashes[c] === hashKey(token))
+      : null;
+    if (!/^[a-z0-9]{3,12}$/.test(id) || !color || games.size >= MAX_GAMES) {
+      ack({ ok: false, error: 'This game ended when the server restarted.' });
+      return;
+    }
+    const chess = new Chess();
+    if (typeof snap.pgn === 'string' && snap.pgn.trim()) {
+      try {
+        chess.loadPgn(snap.pgn.slice(0, 20000));
+      } catch {
+        ack({ ok: false, error: 'This game ended when the server restarted.' });
+        return;
+      }
+    }
+    const clocks = createClockState(snap.timeControl);
+    const cap = clocks.whiteMs + clocks.incrementMs * (chess.history().length + 1);
+    const ms = (v, fallback) => (Number.isFinite(v) ? Math.min(Math.max(0, v), cap) : fallback);
+    clocks.whiteMs = ms(snap.whiteMs, clocks.whiteMs);
+    clocks.blackMs = ms(snap.blackMs, clocks.blackMs);
+    const other = color === 'w' ? 'b' : 'w';
+    games.set(id, {
+      chess,
+      whiteId: null,
+      blackId: null,
+      tokens: { [color]: token, [other]: null },
+      keyHashes: { [other]: typeof hashes[other] === 'string' ? hashes[other] : null },
+      names: { w: cleanName(snap.whiteName), b: cleanName(snap.blackName) },
+      clocks,
+      emptyTimer: null,
+    });
+    const game = games.get(id);
+    takeSeat(socket, game, id, color);
+    console.log(`Restored game ${id} from ${color === 'w' ? 'White' : 'Black'}'s copy (${chess.history().length} moves)`);
+    ack({ ok: true, gameId: id, color, token, rejoined: true, restored: true, state: publicState(game, id) });
   }));
 
   // A seated player names themselves. Everyone in the room sees it.
