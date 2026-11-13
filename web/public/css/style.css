@@ -36,6 +36,7 @@
   --title-filter: brightness(0) invert(92%) sepia(12%);
   --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-brand: "Outfit", "Inter", system-ui, sans-serif;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23a89a8a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --light-sq: #e7ebd8; /* sage green: the default board */
   --dark-sq: #93a883;
 }
@@ -53,6 +54,7 @@ body[data-bg="light"] {
   --on-accent: #ffffff;
   --error: #b91c1c;
   --title-filter: brightness(0.15) contrast(1.15);
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%236b5e52' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 body[data-theme="classic"] { --light-sq: #eedcc2; --dark-sq: #a67d5d; }
@@ -664,13 +666,23 @@ body.view
 }
 
 .nav-field select {
+  /* Our own arrow, so it sits inside the box next to the value on every browser */
+  appearance: none;
+  -webkit-appearance: none;
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.4rem 0.55rem;
-  background: var(--panel-2);
+  padding: 0.4rem 1.8rem 0.4rem 0.65rem;
+  background-color: var(--panel-2);
+  background-image: var(--chevron);
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  background-size: 0.65rem auto;
   color: var(--text);
   font-size: 0.9rem;
+  cursor: pointer;
 }
+.nav-field select:hover:not(:disabled) { border-color: var(--accent); }
+.nav-field select:disabled { opacity: 0.55; cursor: not-allowed; }
 
 /* Board on the left, panel on the right */
 .game-body {
@@ -1224,7 +1236,12 @@ body:not([data-bg="light"]) .captured img {
 .play-controls button {
   padding: 0.55rem 0.75rem;
   font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+.play-controls button.busy { cursor: progress; }
+.play-controls button.busy .thinking { vertical-align: middle; }
 
 .lobby-panel {
   display: flex;

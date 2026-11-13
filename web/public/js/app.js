@@ -265,7 +265,10 @@ hintBtn.addEventListener('click', async () => {
   if (chess.turn() !== myColor) return;
   const fen = chess.fen();
   hintBtn.disabled = true;
-  hintBtn.textContent = 'Thinking…';
+  // Three pulsing dots fit the button; the word "Thinking…" didn't
+  hintBtn.classList.add('busy');
+  hintBtn.setAttribute('aria-label', 'Finding a hint');
+  hintBtn.innerHTML = '<span class="thinking" aria-hidden="true"><i></i><i></i><i></i></span>';
   try {
     const result = await hintEngine.think(fen, 'hard', 1200, movesOf(chess));
     if (result.move && chess.fen() === fen) {
@@ -277,6 +280,8 @@ hintBtn.addEventListener('click', async () => {
     // ignore: the game moved on
   } finally {
     hintBtn.disabled = false;
+    hintBtn.classList.remove('busy');
+    hintBtn.removeAttribute('aria-label');
     hintBtn.textContent = 'Hint';
   }
 });
