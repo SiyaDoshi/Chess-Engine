@@ -55,7 +55,7 @@
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.32);
   /* A single soft light from above, and a gentle darkening at the edges */
   --page-light:
-    radial-gradient(1100px 620px at 50% -8%, rgba(214, 164, 97, 0.09), transparent 65%),
+    radial-gradient(1100px 620px at 50% -8%, rgba(214, 164, 97, 0.06), transparent 65%),
     radial-gradient(ellipse at 50% 40%, transparent 55%, rgba(0, 0, 0, 0.32) 100%);
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23a89a8a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --light-sq: #e7ebd8; /* sage green: the default board */
@@ -882,10 +882,15 @@ body:not([data-bg="light"]) .captured img {
 /* Your own name: click to change it; a pencil shows on hover */
 .player-name.editable { cursor: pointer; }
 .player-name.editable::after {
-  content: "✎";
-  margin-left: 0.35rem;
-  font-size: 0.8em;
-  color: var(--muted);
+  content: "";
+  display: inline-block;
+  width: 0.8em;
+  height: 0.8em;
+  margin-left: 0.4rem;
+  vertical-align: -0.05em;
+  background: var(--muted);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M11 2.5l2.5 2.5L6 12.5H3.5V10z' fill='none' stroke='black' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M11 2.5l2.5 2.5L6 12.5H3.5V10z' fill='none' stroke='black' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
   opacity: 0;
   transition: opacity 0.15s;
 }
@@ -1615,26 +1620,17 @@ body {
   background-attachment: fixed;
 }
 
-/* Title: warm gold lettering, the knight in matching ivory */
+/* Title: plain warm gold lettering, the knight in matching ivory */
 .home-brand::before { content: none; }
 .logo {
   font-weight: 700;
   letter-spacing: -0.02em;
-}
-.logo-text {
-  background: linear-gradient(180deg, #f6dfb4 0%, #e2b673 55%, #c99350 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 2px 18px rgba(214, 164, 97, 0.18));
+  color: #deb071;
 }
 .logo-i img {
-  filter: sepia(0.35) saturate(1.2) brightness(0.97) drop-shadow(0 2px 14px rgba(214, 164, 97, 0.18));
+  filter: sepia(0.3) saturate(1.15) brightness(0.97);
 }
-body[data-bg="light"] .logo-text {
-  background-image: linear-gradient(180deg, #5a3d25 0%, #7d5531 60%, #9a6a35 100%);
-  filter: none;
-}
+body[data-bg="light"] .logo { color: #7d5531; }
 
 /* Solid panels: no shine, just a soft shadow */
 .mode-card,
@@ -1645,8 +1641,14 @@ body[data-bg="light"] .logo-text {
   border-color: var(--border);
   box-shadow: var(--shadow);
 }
+.mode-card {
+  border-radius: 14px;
+}
 .mode-card::before { content: none; }
-.mode-card:hover { box-shadow: var(--shadow); }
+.mode-card:hover {
+  transform: none;
+  box-shadow: var(--shadow);
+}
 .mode-card h2 {
   font-family: var(--font-brand);
   font-weight: 700;
@@ -1659,7 +1661,7 @@ body[data-bg="light"] .logo-text {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--on-accent);
-  box-shadow: 0 6px 18px rgba(214, 164, 97, 0.18);
+  box-shadow: none;
 }
 .menu-actions .mode-primary:hover,
 .primary-btn:hover {
@@ -1667,10 +1669,43 @@ body[data-bg="light"] .logo-text {
   border-color: var(--accent-dark);
 }
 .mode-primary .mode-icon { background: rgba(255, 248, 235, 0.9); }
-.menu-actions button:hover { box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25); }
+.menu-actions button:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Play Online panel: create a game, or join with a code */
+.mode-card h2,
+.online-panel h2 { margin-bottom: 1.1rem; }
+.back-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: -0.3rem 0 0.6rem -0.4rem;
+  padding: 0.3rem 0.4rem;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.back-btn:hover { color: var(--text); }
+.create-btn {
+  width: 100%;
+  padding: 0.85rem 1rem;
+}
+.create-note {
+  margin: 0.55rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
 
 /* Boards: a plain soft shadow, no glow or gloss */
 .home-board-wrap {
+  border-radius: 10px;
   border: 1px solid rgba(0, 0, 0, 0.35);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45), 0 4px 12px rgba(0, 0, 0, 0.25);
 }
