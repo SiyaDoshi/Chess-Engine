@@ -1021,7 +1021,6 @@ function startHomePreview() {
   previewBoard.setInteractive(false);
   previewBoard.setGame(previewChess);
   previewEl.classList.add('preview-board');
-  revealHome();
 
   const step = async () => {
     if (run !== previewRun) return;
@@ -1053,25 +1052,6 @@ function startHomePreview() {
     previewTimer = setTimeout(step, PREVIEW_MOVE_MS);
   };
   previewTimer = setTimeout(step, 900);
-}
-
-/**
- * Show the home page in one go: wait until the board's pieces and the title
- * font are ready (at most 2.5s), then fade everything in and start the logo.
- */
-function revealHome() {
-  // A property on the function, not a let: this first runs while the page is still loading
-  if (revealHome.done) return;
-  const images = [...document.querySelectorAll('#preview-board img, .logo-i img')];
-  const ready = Promise.all([
-    document.fonts?.ready,
-    ...images.map((img) => img.decode?.().catch(() => {})),
-  ]);
-  const timeout = new Promise((resolve) => setTimeout(resolve, 2500));
-  Promise.race([ready, timeout]).then(() => {
-    revealHome.done = true;
-    requestAnimationFrame(() => document.body.classList.add('home-ready'));
-  });
 }
 
 function stopHomePreview() {
