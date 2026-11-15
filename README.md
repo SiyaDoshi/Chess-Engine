@@ -4,7 +4,7 @@
 
 # Gambit
 
-A chess engine I wrote from scratch, and a place to play it.
+A chess engine built from scratch that plays at 1,900+ Elo, right in your browser.
 
 **[Play it live](https://chess-engine-1smz.onrender.com/)** &nbsp;·&nbsp; [How it thinks](#how-it-thinks) &nbsp;·&nbsp; [How strong it is](#how-strong-it-is)
 
@@ -14,7 +14,7 @@ A chess engine I wrote from scratch, and a place to play it.
 
 ![Playing a game against Gambit](docs/demo.gif)
 
-Gambit looks several moves ahead, skips the lines that can't matter, and remembers positions it has already worked out. On Hard it plays at about **1,940 Elo**, and all of the thinking happens in your browser.
+Gambit looks several moves ahead, skips the lines that can't matter, and remembers positions it has already worked out. There's no server doing the thinking: every move is searched on your own device.
 
 ## Highlights
 
@@ -174,8 +174,12 @@ Gambit began as a desktop game in Python. The web version keeps its ideas and ad
 
 ## Credits
 
-Pieces from the [Kosal](https://github.com/philatype/kosal) set by philatype (CC BY 4.0), fonts [Inter](https://github.com/rsms/inter), [Outfit](https://github.com/Outfitio/Outfit-Fonts) and [Fraunces](https://github.com/undercasetype/Fraunces) (SIL Open Font License), rules by [chess.js](https://github.com/jhlywa/chess.js), and piece-square tables from Tomasz Michniewski's Simplified Evaluation Function. Stockfish was used only to measure Gambit's rating.
+- **Pieces:** [Kosal](https://github.com/philatype/kosal) by philatype (CC BY 4.0)
+- **Fonts:** [Inter](https://github.com/rsms/inter), [Outfit](https://github.com/Outfitio/Outfit-Fonts) and [Fraunces](https://github.com/undercasetype/Fraunces) (SIL Open Font License)
+- **Chess rules:** [chess.js](https://github.com/jhlywa/chess.js)
+- **Piece-square tables:** Tomasz Michniewski's Simplified Evaluation Function
+- **Strength testing:** [Stockfish](https://stockfishchess.org) 16.1
 
 ## License
 
-© 2026 Siya Doshi. You're welcome to read the code and run it on your own computer to try it out. Please don't copy, change, share or reuse it without asking. See [LICENSE](LICENSE).
+© 2026 Siya Doshi. All rights reserved. The code may be run locally for evaluation. See [LICENSE](LICENSE).
