@@ -498,8 +498,10 @@ const pathMatch = window.location.pathname.match(/^\/g\/([a-z0-9]+)$/i);
 if (pathMatch) {
   joinOnlineGame(pathMatch[1].toLowerCase());
 } else {
-  // Hard guarantee: landing page only — never show gameplay chrome
-  showHome();
+  // After the whole script has run, so everything the game screen uses exists.
+  const savedLocal = loadLocalGame();
+  if (savedLocal) queueMicrotask(() => { if (!restoreLocalGame(savedLocal)) showHome(); });
+  else showHome();
 }
 
 startClockLoop();
@@ -1022,6 +1024,7 @@ function cancelEngine() {
 }
 
 function goHome() {
+  clearLocalGame();
   document.getElementById('link-notice').hidden = true;
   document.getElementById('leave-game').hidden = true;
   showOnlinePanel(false);
@@ -1111,13 +1114,72 @@ function stopHomePreview() {
   previewChess = null;
 }
 
-function startLocal(selectedMode) {
+/*
+ * Engine and two-player games are saved for this tab after every change,
+ * so a refresh comes back to the same position, clocks and names.
+ */
+function saveLocalGame() {
+  if ((mode !== 'local-ai' && mode !== 'local-pvp') || !chess) return;
+  settleLocalClocks();
+  const saved = {
+    mode,
+    moves: chess.history(),
+    myColor,
+    level: levelSelect.value,
+    timeControl: timerSelect.value,
+    whiteMs,
+    blackMs,
+    clocksRunning,
+    timedOut,
+    clockHistory,
+    savedAt: Date.now(),
+  };
+  try { sessionStorage.setItem('gambit-local-game', JSON.stringify(saved)); } catch { /* private mode */ }
+}
+function clearLocalGame() {
+  try { sessionStorage.removeItem('gambit-local-game'); } catch { /* private mode */ }
+}
+function loadLocalGame() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem('gambit-local-game') || 'null');
+    if (!saved || !['local-ai', 'local-pvp'].includes(saved.mode) || !Array.isArray(saved.moves)) return null;
+    return saved;
+  } catch {
+    return null;
+  }
+}
+window.addEventListener('pagehide', saveLocalGame);
+
+/** Bring back the game saved before a refresh. Returns false if it can't be replayed. */
+function restoreLocalGame(saved) {
+  const replay = new Chess();
+  try {
+    for (const san of saved.moves) replay.move(san);
+  } catch {
+    clearLocalGame();
+    return false;
+  }
+  if (TIME_PRESETS[saved.timeControl]) timerSelect.value = saved.timeControl;
+  if (LEVELS[saved.level]) {
+    levelSelect.value = saved.level;
+    engineLevel = saved.level;
+  }
+  if (saved.mode === 'local-ai' && (saved.myColor === 'w' || saved.myColor === 'b')) {
+    playerColor = saved.myColor;
+    colorSelect.value = playerColor;
+  }
+  startLocal(saved.mode, { game: replay, ...saved });
+  return true;
+}
+
+function startLocal(selectedMode, saved = null) {
   // Its own history entry, so the browser's back button comes back to Gambit's home page.
   if (window.history.state?.gambit !== 'game') window.history.pushState({ gambit: 'game' }, '', '/');
   mode = selectedMode;
   hideResult();
   showEngineInfo(null);
-  chess = new Chess();
+  chess = saved ? saved.game : new Chess();
+  soundedPly = chess.history().length; // no sound for moves brought back by a refresh
   myColor = selectedMode === 'local-ai' ? playerColor : 'w';
   gameOver = false;
   timedOut = null;
@@ -1131,6 +1193,17 @@ function startLocal(selectedMode) {
   lobbyPanel.hidden = true;
   roomBadge.hidden = true;
   applyLocalPreset(timerSelect.value, true);
+  if (saved) {
+    whiteMs = Number(saved.whiteMs) || whiteMs;
+    blackMs = Number(saved.blackMs) || blackMs;
+    clockHistory = Array.isArray(saved.clockHistory) ? saved.clockHistory : [];
+    timedOut = saved.timedOut === 'w' || saved.timedOut === 'b' ? saved.timedOut : null;
+    clocksRunning = !!saved.clocksRunning && !timedOut;
+    // The clock of the side to move kept running during the refresh.
+    lastTickAt = clocksRunning ? Number(saved.savedAt) || Date.now() : Date.now();
+    settleLocalClocks();
+    renderClocks();
+  }
   updateModeUI();
   updateStatus();
   showGame();
@@ -1204,6 +1277,7 @@ function resetLocal() {
 
 function updateStatus() {
   if (!chess) return;
+  queueMicrotask(saveLocalGame);
   if (timedOut) {
     statusEl.textContent = winText(timedOut === 'w' ? 'b' : 'w', 'on time');
     board.setInteractive(false);
