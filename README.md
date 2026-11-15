@@ -4,7 +4,7 @@
 
 # Gambit
 
-A chess engine built from scratch that plays at 1,900+ Elo.
+A chess engine built from scratch. Rated 1,900+ Elo.
 
 **[Play it live](https://chess-engine-1smz.onrender.com/)** &nbsp;·&nbsp; [How it thinks](#how-it-thinks) &nbsp;·&nbsp; [How strong it is](#how-strong-it-is)
 
