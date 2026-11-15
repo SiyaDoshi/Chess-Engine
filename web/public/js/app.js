@@ -307,7 +307,8 @@ hintBtn.addEventListener('click', async () => {
   hintBtn.setAttribute('aria-label', 'Finding a hint');
   hintBtn.innerHTML = '<span class="thinking" aria-hidden="true"><i></i><i></i><i></i></span>';
   try {
-    const result = await hintEngine.think(fen, 'hard', 1200, movesOf(chess));
+    // A short search: still a strong move, and the hint feels instant.
+    const result = await hintEngine.think(fen, 'hard', 400, movesOf(chess));
     if (result.move && chess.fen() === fen) {
       board.showHint(result.move.from, result.move.to);
       const san = new Chess(fen).move(result.move).san;
