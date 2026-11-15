@@ -1281,6 +1281,8 @@ body:not([data-bg="light"]) .player-bar[data-side="b"] .side-badge img {
 /* The engine card is always shown in full (it never scrolls); the move
    list gives way first, keeping about three rows in view. */
 .side-panel > .moves-card:has(.move-list li:nth-child(4)) { min-height: 7rem; }
+/* Up to three rows the card never shrinks, so no move is ever cut off */
+.side-panel > .moves-card:not(:has(.move-list li:nth-child(4))) { flex-shrink: 0; }
 
 .panel-card {
   background: var(--panel);
