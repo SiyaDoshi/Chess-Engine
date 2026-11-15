@@ -334,6 +334,8 @@ body.view-home .home-row,
 body.view-home .home-footer {
   transition: opacity 0.35s ease-out;
 }
+/* Refreshing a game: nothing of the home page shows while it comes back */
+body.resuming #menu { visibility: hidden; }
 body.view-home:not(.home-ready) .home-row,
 body.view-home:not(.home-ready) .home-footer { opacity: 0; }
 

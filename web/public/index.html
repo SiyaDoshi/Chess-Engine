@@ -45,6 +45,15 @@
 
 </head>
 <body class="view-home" data-theme="classic" data-bg="dark">
+  <script>
+    // A refresh during a game (or opening a game link) goes straight to the
+    // game: the home page stays hidden while the game is brought back.
+    try {
+      if (/^\/g\/[a-z0-9]+$/i.test(location.pathname) || sessionStorage.getItem('gambit-local-game')) {
+        document.body.classList.add('resuming');
+      }
+    } catch (e) { /* storage blocked: show the home page as usual */ }
+  </script>
   <!-- LANDING PAGE ONLY — no gameplay controls here -->
   <section id="menu" class="home">
     <div class="home-ambient" aria-hidden="true"></div>

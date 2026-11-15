@@ -510,6 +510,7 @@ if (pathMatch) {
 startClockLoop();
 
 function setView(view) {
+  document.body.classList.remove('resuming');
   document.body.classList.toggle('view-home', view === 'home');
   document.body.classList.toggle('view-game', view === 'game');
 }
