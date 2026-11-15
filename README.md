@@ -1,52 +1,69 @@
 # Gambit
 
-A chess engine written from scratch, playable in the browser.
+A chess engine I wrote from scratch, and a place to play it.
 
 **[Play it live →](https://chess-engine-1smz.onrender.com/)**
 
-![Playing against Gambit](docs/demo.gif)
+![Playing a game against Gambit](docs/demo.gif)
 
-The engine searches with NegaMax and alpha-beta pruning, orders moves so it can skip most of the tree, remembers positions it has already searched in a transposition table, keeps calculating through captures with quiescence search, avoids repetition draws when it's winning, and deepens iteratively until its time runs out. It runs in a Web Worker, so the page stays smooth while it thinks. Hard plays at roughly 1,900 Elo on Stockfish's scale.
+Gambit looks several moves ahead, skips the lines that can't matter, and remembers positions it has already worked out. On Hard it plays at about **1,940 Elo** against Stockfish, and it does all of this in your browser, without a server doing the thinking.
 
-## Features
+## At a glance
 
-- **Play the engine** at Easy, Medium or Hard, as White or Black, with an evaluation bar and a live readout of what the engine found (score, depth, positions searched, time, best line)
-- **Two Player** on one device, or **Play Online** with a share link or room code (Socket.IO, server-side move validation and clocks). Each player gets a private seat key, so a dropped connection or a refresh puts you back in your seat, and a game is private once both players have joined
-- Name the players: click your name to change it; online, your friend sees it
-- Drag-and-drop or click-to-move, promotion picker, captured pieces, hints, and a move list you can step back through (click a move or ← →) without changing the game
-- Time controls from 1+0 to 10+0 with increments; the engine manages its own clock
-- Board and piece themes, light and dark mode, sounds, and settings that are remembered
-- Works on phones and laptops
+- **A real search engine.** Alpha-beta search, move ordering, a transposition table, quiescence search and iterative deepening, each one measured.
+- **99% less work.** Those techniques cut the positions searched by about 99% compared with plain minimax, with the same answer.
+- **A measured rating.** Each level played 96 games against Stockfish on GitHub Actions, so the numbers below come with error bars.
+- **Online play that holds up.** A refresh, a dropped connection or even a server restart puts both players back in their game.
 
-![Home page](docs/home.png)
+## Playing
 
-## How the engine works
+**Against the engine.** Pick Easy, Medium or Hard and your color. An evaluation bar shows who is ahead, a hint is one click away, and "How Gambit chose its move" opens the numbers behind each reply.
 
-The engine lives in [`web/public/js/engine/`](web/public/js/engine):
+**Two players, one screen.** Pass the device back and forth, and flip the board when you like.
 
-| File | What it does |
+**Online.** Create a game and send the link or the room code. The server checks every move and keeps the clocks, so neither side can cheat the timer. Once two players join, the game is private.
+
+**Everywhere:**
+
+- Drag or tap to move, with a promotion picker and captured pieces beside each player
+- Time controls from 1+0 to 10+0, plus 3+2 and 5+3
+- Step back through the moves with the arrow keys without changing the game
+- A refresh brings back the exact game, and leaving mid-game asks first
+- Five board colors, two piece sets, light and dark backgrounds, and move sounds
+
+<p align="center">
+  <img src="docs/mobile.png" width="520" alt="Gambit on a phone: the home page and a game in progress" />
+</p>
+
+## How Gambit thinks
+
+On every move, Gambit asks one question: what is the best I can do if you always find your best reply? Answering it means searching a tree of moves that grows very fast, so most of the work goes into searching less of it.
+
+**Search.** The core is NegaMax, a compact form of minimax: my best score is the negative of your best score. Alpha-beta pruning drops a move the moment it is proven worse than one already found.
+
+**Move ordering.** Pruning works best when strong moves come first. Gambit tries the captures that win the most for the least first, and opens each search with the best line from the one before.
+
+**Transposition table.** Different move orders often reach the same position. Each position Gambit searches is stored under a 64-bit hash, so it is looked up instead of searched again. At depth 5 this halves the work.
+
+**Quiescence search.** The search keeps playing out captures until the position is quiet. Without it, Gambit would grab a defended pawn with its queen because the recapture sits just past its horizon.
+
+**Draw awareness.** Repeated positions and the 50-move rule count as draws, so Gambit doesn't drift into a repetition when it is winning, and looks for one when it is losing.
+
+**Iterative deepening.** It searches one move deep, then two, then three, and stops when its time runs out, keeping the last complete answer.
+
+The search runs in a Web Worker, so the page stays smooth while Gambit thinks. The code is in [`web/public/js/engine/`](web/public/js/engine):
+
+| File | Role |
 | --- | --- |
-| `board.js` | Fast move generation on top of chess.js's internal 0x88 board (~575k positions/sec) |
-| `evaluate.js` | Material plus piece-square tables, with a separate king table for the endgame |
-| `search.js` | NegaMax + alpha-beta, MVV-LVA move ordering, transposition table, quiescence search, repetition and 50-move draw detection, iterative deepening, time limit |
-| `levels.js` | Easy / Medium / Hard settings |
-| `worker.js`, `client.js` | Runs the search in a Web Worker and exposes `think(fen, level)` |
+| `search.js` | The search and everything that speeds it up |
+| `evaluate.js` | Scores a position: material plus piece-square tables, with a separate king table for the endgame |
+| `board.js` | Fast move generation on chess.js's internal board, about 575,000 positions per second |
+| `levels.js` | Easy, Medium and Hard |
+| `worker.js`, `client.js` | Runs the search off the main thread |
 
-**Search.** NegaMax is minimax written once: my best score is the negative of my opponent's best score. Alpha-beta pruning stops looking at a move as soon as it's proven worse than an option already found.
+### Searching less
 
-**Move ordering.** Alpha-beta prunes the most when good moves come first, so captures are tried first, sorted by *most valuable victim, least valuable attacker*, and the best line from the previous depth is tried before anything else.
-
-**Transposition table.** The same position is often reached by different move orders (1.e4 e5 2.Nf3 and 1.Nf3 e5 2.e4). Every searched position is stored under its 64-bit Zobrist hash with its depth, score, bound type and best move, so it can be reused instead of searched again; even when the stored search is too shallow, its best move is tried first. At depth 5 this cuts the search by 55%, and Hard reaches one more half-move in the same time.
-
-**Draw awareness.** A position that already occurred (in the game or earlier in the searched line) and the 50-move limit score as draws, so the engine doesn't shuffle a won endgame into a threefold repetition, and a losing engine looks for one. These scores depend on how a position was reached, so they are kept out of the transposition table.
-
-**Quiescence search.** At the end of the main search the engine keeps playing out captures until the position is quiet. Without this it would happily take a defended pawn with its queen because the recapture is one move past its horizon.
-
-**Iterative deepening.** It searches depth 1, 2, 3, … and stops when its time budget runs out, keeping the last finished answer.
-
-### Benchmarks
-
-`npm run bench` searches standard positions with each technique switched on in turn (quiescence off so every row searches the same tree):
+`npm run bench` searches standard positions with each technique added in turn:
 
 | Position | Depth | Minimax | + Alpha-beta | + Move ordering | + Transposition table |
 | --- | --- | --- | --- | --- | --- |
@@ -54,71 +71,65 @@ The engine lives in [`web/public/js/engine/`](web/public/js/engine):
 | Italian Game | 4 | 978,800 · 30.9s | 92,739 · 2.8s | 13,087 · 0.42s | 9,706 · 0.30s (**99.0% fewer**) |
 | Kiwipete (middlegame) | 3 | 102,087 · 4.1s | 5,164 · 0.21s | 2,847 · 0.12s | 2,641 · 0.11s (**97.4% fewer**) |
 
-The transposition table matters most in deeper searches: at depth 5 it cuts the Italian Game from 215,907 to 97,136 positions (55% fewer, 4.5s → 2.1s) and Kiwipete from 428,148 to 199,902 (53% fewer).
+Quiescence search is off here, so every column searches the same tree.
 
-### Strength
+### How strong is it?
 
-Measured over **96 games per level** against **Stockfish 16.1** in its strength-limited mode, on the 60s + 0.6s clock its Elo setting is calibrated for. Each level played two Stockfish settings from 24 different openings, each opening once with each color. The games run on GitHub Actions (the **Elo** workflow, 18 jobs side by side) and `bench/elo/summarize.mjs` turns them into a performance rating with a 95% range:
+Each level played **96 games against Stockfish 16.1** in its strength-limited mode, from 24 openings with each color, on the 60s + 0.6s clock that Stockfish's rating scale is calibrated for. The games run in parallel on GitHub Actions.
 
-| Level | Search | Games (W / D / L) | Result | Elo (95% range) |
-| --- | --- | --- | --- | --- |
-| Easy | depth 3; 15% of the time picks one of its 3 best moves (never one that loses more than 1.5 pawns or misses a mate in one) | 96 (64 / 1 / 31) | 37/48 vs Stockfish 1320, 27.5/48 vs 1500 | **1,543** (1,468–1,628) |
-| Medium | depth 4, capped at 1s | 96 (56 / 4 / 36) | 35.5/48 vs Stockfish 1600, 22.5/48 vs 1800 | **1,780** (1,706–1,859) |
-| Hard | as deep as it can in 2.5s (usually 5–6 half-moves) | 96 (51 / 4 / 41) | 32/48 vs Stockfish 1800, 21/48 vs 2000 | **1,939** (1,865–2,016) |
+| Level | How it plays | W / D / L | Elo (95% range) |
+| --- | --- | --- | --- |
+| Easy | Looks 3 moves deep and sometimes picks its second or third choice, but never gives away a piece | 64 / 1 / 31 | **1,543** (1,468–1,628) |
+| Medium | Looks 4 moves deep, up to 1 second per move | 56 / 4 / 36 | **1,780** (1,706–1,859) |
+| Hard | Searches as deep as it can in 2.5 seconds, usually 5–6 moves | 51 / 4 / 41 | **1,939** (1,865–2,016) |
 
-These are on Stockfish's engine scale, not chess.com or FIDE ratings.
+These ratings are on Stockfish's scale, which is not the same as chess.com or FIDE ratings.
 
 ## Tests
 
 ```bash
-cd web && npm test                          # engine and server tests (Node's built-in test runner)
-python3 -m unittest discover desktop/tests  # desktop move generator, AI and promotion picker
+cd web && npm test                          # engine and server
+python3 -m unittest discover desktop/tests  # the original Python version
 ```
 
-- **Perft** checks count every position reachable in N moves and compare with the published numbers. Running them against the original Python move generator found three bugs: castling rights saved in the wrong order, castling still allowed after the rook was captured, and no under-promotion. All three are fixed, it now matches all six standard test positions, and the desktop game lets you choose the promotion piece (click or Q/R/B/N).
-- Server tests start the real server and play through it: turn order, illegal moves, private games, players rejoining with their seat key, names, checkmate, clocks that wait for the first move, and malformed messages (one of which used to crash the server).
-- Engine tests check mates in one and two, winning free material, the horizon effect, time limits, repetition and 50-move draws, driving a bare king to the edge, the bishop-and-knight mate (it finds mate from scattered starts well inside the 50-move limit), that Easy never gives away material for free or misses a mate in one, and that alpha-beta, move ordering and the transposition table return the same result as plain minimax while searching less.
+The engine tests check that Gambit finds forced mates, wins free material, avoids the horizon trap, respects its time limit and handles draws. They also check that every speed-up returns the same move as plain minimax. The server tests play real games through the server: turn order, illegal moves, clocks, private games, and players rejoining after a refresh or a server restart.
 
-## Run it locally
+Perft tests, which count every position reachable in a few moves, found three bugs in the original move generator, all now fixed.
+
+## Run it yourself
 
 ```bash
 cd web
 npm install
-npm start          # http://localhost:3000
+npm start    # http://localhost:3000
 ```
 
-Or open the repo in **GitHub Codespaces**: the dev container installs everything and starts the app.
+You can also open the repo in GitHub Codespaces, which installs everything and starts the app.
 
-## Project structure
+The live site runs on Render's free tier, which sleeps when idle. A small GitHub Action visits it every 10 minutes to keep it awake.
+
+## Project layout
 
 ```
-web/                 the web app (deployed)
-  server.js          Express + Socket.IO: online games and clocks
-  public/
-    js/engine/       the chess engine
-    js/app.js        game screen, clocks, modes
-    js/board.js      board rendering, drag-and-drop, animations
-  tests/             engine tests
-  bench/             benchmark script
-desktop/             the original Python + pygame version
-  ChessEngine.py     board state and move generation
-  ChessAI.py         NegaMax + alpha-beta for the desktop game
-  tests/             perft and AI tests
+web/                 the web app
+  server.js          Express and Socket.IO: online games and clocks
+  public/js/engine/  the chess engine
+  public/js/app.js   game screen, modes and clocks
+  public/js/board.js board, drag and drop, animations
+  tests/             engine and server tests
+  bench/             benchmarks and the Stockfish matches
+desktop/             the first version, in Python and pygame
 ```
 
-The desktop version came first: it's where the move generator and the first NegaMax search were written. The web version uses the same ideas, with a faster search, more techniques and a full UI.
-
-## Hosting note
-
-The live demo runs on Render's free tier, which sleeps after a period without visitors, so the first load after a break can take up to a minute. A free uptime monitor (for example UptimeRobot pinging the site every 10 minutes) keeps it awake.
+Gambit started as a desktop game in Python, where the move generator and the first search were written. The web version keeps those ideas and adds a faster search, more techniques and a full interface.
 
 ## Credits
 
-- Chess pieces: [Kosal](https://github.com/philatype/kosal) by philatype, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The Gambit logo's pawn and knight are cropped from this set. Original "Classic" pieces are also available in settings.
-- Fonts: [Inter](https://github.com/rsms/inter), [Outfit](https://github.com/Outfitio/Outfit-Fonts) and [Fraunces](https://github.com/undercasetype/Fraunces), SIL Open Font License 1.1 (see `web/public/fonts`).
+- Chess pieces: [Kosal](https://github.com/philatype/kosal) by philatype, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The logo's pawn and knight come from this set.
+- Fonts: [Inter](https://github.com/rsms/inter), [Outfit](https://github.com/Outfitio/Outfit-Fonts) and [Fraunces](https://github.com/undercasetype/Fraunces), under the SIL Open Font License 1.1.
 - Rules and move legality: [chess.js](https://github.com/jhlywa/chess.js). Piece-square tables: Tomasz Michniewski's Simplified Evaluation Function.
-- Strength testing: [Stockfish](https://stockfishchess.org) 16.1, used only to measure Gambit's rating. It is not part of the app.
+- Strength testing: [Stockfish](https://stockfishchess.org) 16.1, used only to measure Gambit's rating.
 
 ## License
 
-© 2026 Siya Doshi. All rights reserved. The code is shared for viewing only; see [LICENSE](LICENSE). Pieces and fonts keep their own licenses, listed above.
+© 2026 Siya Doshi. All rights reserved. The code is shared for viewing only; see [LICENSE](LICENSE). The pieces and fonts keep their own licenses.
