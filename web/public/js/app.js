@@ -257,6 +257,11 @@ bgSelect.addEventListener('change', () => {
   localStorage.setItem('chess-bg', bgSelect.value);
 });
 
+// Fade the top of the move list while earlier moves are scrolled out of view
+const markMoreAbove = () => moveListEl.classList.toggle('more-above', moveListEl.scrollTop > 2);
+moveListEl.addEventListener('scroll', markMoreAbove, { passive: true });
+new ResizeObserver(markMoreAbove).observe(moveListEl);
+
 moveListEl.addEventListener('click', (e) => {
   const ply = e.target.closest('.move-san')?.dataset.ply;
   if (ply) showPly(Number(ply));

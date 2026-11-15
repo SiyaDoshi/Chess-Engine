@@ -1281,6 +1281,12 @@ body:not([data-bg="light"]) .player-bar[data-side="b"] .side-badge img {
 /* The engine card is always shown in full (it never scrolls); the move
    list gives way first, keeping about three rows in view. */
 .side-panel > .moves-card:has(.move-list li:nth-child(4)) { min-height: 7rem; }
+/* Earlier moves scrolled out of view: fade the top edge so a part-hidden
+   row reads as "more above" instead of looking cut off */
+.move-list.more-above {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 1.6rem);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 1.6rem);
+}
 /* Up to three rows the card never shrinks, so no move is ever cut off */
 .side-panel > .moves-card:not(:has(.move-list li:nth-child(4))) { flex-shrink: 0; }
 
