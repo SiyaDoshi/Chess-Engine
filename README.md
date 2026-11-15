@@ -115,8 +115,9 @@ The live demo runs on Render's free tier, which sleeps after a period without vi
 ## Credits
 
 - Chess pieces: [Kosal](https://github.com/philatype/kosal) by philatype, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The Gambit logo's pawn and knight are cropped from this set. Original "Classic" pieces are also available in settings.
-- Fonts: [Inter](https://github.com/rsms/inter) and [Outfit](https://github.com/Outfitio/Outfit-Fonts), SIL Open Font License 1.1 (see `web/public/fonts`).
+- Fonts: [Inter](https://github.com/rsms/inter), [Outfit](https://github.com/Outfitio/Outfit-Fonts) and [Fraunces](https://github.com/undercasetype/Fraunces), SIL Open Font License 1.1 (see `web/public/fonts`).
 - Rules and move legality: [chess.js](https://github.com/jhlywa/chess.js). Piece-square tables: Tomasz Michniewski's Simplified Evaluation Function.
+- Strength testing: [Stockfish](https://stockfishchess.org) 16.1, used only to measure Gambit's rating. It is not part of the app.
 
 ## License
 
