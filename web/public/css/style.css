@@ -1276,6 +1276,23 @@ body:not([data-bg="light"]) .player-bar[data-side="b"] .side-badge img {
   min-height: 0;
   max-height: none;
 }
+/* With the engine details open, the details scroll inside their card and
+   the moves card keeps room for a few rows (it scrolls too). */
+.side-panel > .engine-card:not([hidden]) {
+  flex: 0 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.side-panel > .engine-card > * { flex-shrink: 0; }
+.side-panel > .engine-card > .details-btn { align-self: flex-start; }
+.side-panel > .engine-card > .engine-details {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.side-panel > .moves-card:has(.move-list:not(:empty)) { min-height: 8.5rem; }
 
 .panel-card {
   background: var(--panel);

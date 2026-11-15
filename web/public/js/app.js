@@ -224,6 +224,8 @@ engineHelpBtn.addEventListener('click', () => {
   details.hidden = !details.hidden;
   engineHelpBtn.setAttribute('aria-expanded', String(!details.hidden));
   engineHelpBtn.textContent = details.hidden ? 'How Gambit chose its move' : 'Hide details';
+  // The moves card just changed height: keep the latest move in view.
+  if (reviewPly === null) moveListEl.scrollTop = moveListEl.scrollHeight;
 });
 
 // Sound on/off
