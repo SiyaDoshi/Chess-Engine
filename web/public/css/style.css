@@ -1995,9 +1995,15 @@ body[data-bg="light"] .logo { color: #7d5531; }
   text-transform: uppercase;
 }
 .engine-help dl { margin: 0; }
-.engine-help div + div { margin-top: 0.55rem; }
+/* Term on the left, explanation in one aligned column beside it */
+.engine-help div {
+  display: grid;
+  grid-template-columns: 4.6rem 1fr;
+  column-gap: 0.75rem;
+}
+.engine-help div + div { margin-top: 0.5rem; }
 .engine-help dt { color: var(--text); font-weight: 600; }
-.engine-help dd { margin: 0.1rem 0 0; color: var(--muted); }
+.engine-help dd { margin: 0; color: var(--muted); }
 .engine-help[hidden] { display: none; }
 
 /* Settings: hide the dots that show where a picked-up piece can go */

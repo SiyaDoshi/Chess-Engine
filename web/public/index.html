@@ -337,7 +337,7 @@
         <div id="engine-card" class="panel-card engine-card" hidden>
           <div class="engine-head">
             <span class="engine-title">Score</span>
-            <span id="engine-eval" class="engine-eval" title="Who is ahead, in pawns. Positive favours White, negative favours Black. M3 means checkmate in three.">0.0</span>
+            <span id="engine-eval" class="engine-eval" title="Who is ahead, in pawns. Positive favors White, negative favors Black. M3 means checkmate in three.">0.0</span>
           </div>
           <button type="button" id="btn-engine-help" class="details-btn" aria-expanded="false" aria-controls="engine-details">How Gambit chose its move</button>
           <!-- Hidden by default: the best line would tell you the engine's plan -->
@@ -351,11 +351,11 @@
             <div class="engine-help">
               <p class="engine-help-title">What these mean</p>
               <dl>
-                <div><dt>Score</dt><dd>Who is ahead, measured in pawns. A positive score favours White and a negative one favours Black, so +1.0 is roughly an extra pawn for White. M3 means checkmate in three moves.</dd></div>
-                <div><dt>Depth</dt><dd>How far ahead Gambit looked. Every single move counts, so a move by White and Black's reply make a depth of 2.</dd></div>
-                <div><dt>Positions</dt><dd>How many positions Gambit examined before choosing its move.</dd></div>
-                <div><dt>Time</dt><dd>How long Gambit spent thinking about this move.</dd></div>
-                <div><dt>Best line</dt><dd>The moves Gambit expects next if both sides play what it considers best.</dd></div>
+                <div><dt>Score</dt><dd>Who is ahead, in pawns. Positive favors White, negative favors Black. M3 means mate in three.</dd></div>
+                <div><dt>Depth</dt><dd>How many moves ahead Gambit searched. Each side's move counts as one.</dd></div>
+                <div><dt>Positions</dt><dd>How many positions Gambit evaluated.</dd></div>
+                <div><dt>Time</dt><dd>How long Gambit took to choose.</dd></div>
+                <div><dt>Best line</dt><dd>The moves Gambit expects if both sides play its top choices.</dd></div>
               </dl>
             </div>
           </div>
