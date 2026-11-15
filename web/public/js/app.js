@@ -665,9 +665,10 @@ function updateModeUI({ onlineLobby = false, onlinePlaying = false } = {}) {
   clocksEl.classList.toggle('single-clock', single);
   renderPlayers();
   // Your colour is chosen before a game against the engine, so there's no
-  // "Play as" menu during it.
+  // "Play as" menu or Flip during it; Flip is for two players at one screen.
   colorField.hidden = true;
   hintBtn.hidden = !single;
+  document.getElementById('btn-flip').hidden = single;
 
   if (mode === 'online') {
     timerSelect.disabled = !(myColor === 'w' && onlineLobby);
