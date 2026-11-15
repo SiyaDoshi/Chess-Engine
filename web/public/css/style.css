@@ -1990,6 +1990,7 @@ body.hide-legal .square.legal::after { display: none; }
   border-radius: 10px;
   background: var(--panel-2);
 }
+#engine-color-choice { grid-template-columns: repeat(2, 1fr); }
 .choice-row button {
   appearance: none;
   padding: 0.5rem 0.4rem;

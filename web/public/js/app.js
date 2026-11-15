@@ -384,8 +384,9 @@ function showHomePanel(id) {
 }
 
 /* Play the engine panel: difficulty and colour as buttons (they set the same
-   options as the game's top bar). "Random" picks a colour when the game starts. */
-let engineColorChoice = localStorage.getItem('chess-color-choice') || playerColor;
+   options as the game's top bar). */
+let engineColorChoice = ['w', 'b'].includes(localStorage.getItem('chess-color-choice'))
+  ? localStorage.getItem('chess-color-choice') : playerColor;
 function renderEngineChoices() {
   for (const btn of document.querySelectorAll('#engine-level-choice [data-level]')) {
     btn.setAttribute('aria-checked', String(btn.dataset.level === levelSelect.value));
@@ -409,7 +410,7 @@ document.getElementById('engine-color-choice').addEventListener('click', (e) => 
   renderEngineChoices();
 });
 function applyEngineColorChoice() {
-  const color = engineColorChoice === 'random' ? (Math.random() < 0.5 ? 'w' : 'b') : engineColorChoice;
+  const color = engineColorChoice;
   if (color !== playerColor) {
     playerColor = color;
     colorSelect.value = color;
