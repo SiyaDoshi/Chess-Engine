@@ -18,18 +18,18 @@ Gambit looks several moves ahead, skips the lines that can't matter, and remembe
 
 ## Highlights
 
-- **Built from scratch.** Alpha-beta search, move ordering, a transposition table and more, each one measured.
-- **99% less searching** than plain minimax, for the same answer.
-- **A measured rating** from 96 games per level against Stockfish, with error bars.
-- **Online play that holds up.** A refresh, a dropped connection or a server restart puts both players back in the game.
+- **Built from scratch.** The search, the way it scores positions and every speed-up are my own code, and each speed-up is measured on its own.
+- **99% less searching.** To pick a move, Gambit examines about 1% of the positions a brute-force search would, and still finds the same move.
+- **A measured rating.** Elo is the rating system chess uses to compare players. Gambit's comes from 96 games per level against Stockfish, the strongest open-source engine, with a 95% confidence range.
+- **Online play that holds up.** A refresh, a dropped connection or even a server restart puts both players back in the same game.
 
 ## Ways to play
 
 | Against the engine | Two players | Online |
 | --- | --- | --- |
-| Easy, Medium or Hard, with an evaluation bar, hints, and the numbers behind each move | One screen, passed back and forth | Share a link or a room code. The server checks every move and keeps the clocks |
+| Easy, Medium or Hard, with a bar showing who is ahead, hints, and the numbers behind each move | One screen, passed back and forth | Share a link or a room code. The server checks every move and runs the clocks, so neither side can cheat |
 
-Every mode has drag or tap to move, time controls from 1+0 to 10+0, a move list you can step back through, board and piece themes, and games that survive a refresh.
+Every mode has drag or tap to move, chess clocks from 1 to 10 minutes (with or without time added after each move), a move list you can step back through, board and piece themes, and games that survive a refresh.
 
 <p align="center">
   <img src="docs/mobile.png" width="460" alt="Gambit on a phone: the home page and a game in progress" />
@@ -37,34 +37,36 @@ Every mode has drag or tap to move, time controls from 1+0 to 10+0, a move list 
 
 ## How it thinks
 
-On every move, Gambit asks one question: what is the best I can do if you always find your best reply? The tree of possible moves grows very fast, so most of the work goes into searching less of it.
+To choose a move, Gambit plays out the future in its head: every move it could make, every reply you could make, every answer to that, and so on. How many moves ahead it looks is called the **depth**. At the end of each line it scores the position, counting material in pawns and adding a little for pieces on good squares, and it assumes both sides always pick their best option. This approach is called **minimax**.
+
+The catch is size. A chess position has about 30 legal moves, so looking just 4 moves ahead means close to a million positions. Most of Gambit's design is about finding the same best move while examining far fewer:
 
 | Technique | What it does |
 | --- | --- |
-| **Alpha-beta search** | Drops a move the moment it is proven worse than one already found |
-| **Move ordering** | Tries the most promising moves first, so more of the tree can be skipped |
-| **Transposition table** | Remembers positions reached by different move orders, instead of searching them again |
-| **Quiescence search** | Plays out captures before judging a position, so it doesn't walk into a recapture |
-| **Draw awareness** | Avoids repeating positions when it is winning, and looks for a repetition when it is losing |
-| **Iterative deepening** | Searches one move deep, then two, then three, until its time runs out |
+| **Alpha-beta pruning** | Stops examining a move once it's clear the opponent has a reply that makes it worse than a move already found. Whole branches are skipped without changing the result. |
+| **Move ordering** | Pruning skips the most when the best moves are examined first, so Gambit looks at captures and the previous best move before anything else. |
+| **Transposition table** | Different move orders often reach the same position. Gambit stores every result it works out, so a repeated position is looked up instead of searched again. |
+| **Quiescence search** | A search that stops halfway through an exchange gets fooled, for example by taking a pawn without seeing the recapture. So at the end of each line, Gambit keeps playing out captures until the position is calm. |
+| **Draw awareness** | Gambit knows the draw rules (a position repeated three times, or 50 moves without a capture or pawn move), so it steers away from a draw when ahead and toward one when behind. |
+| **Iterative deepening** | Gambit searches 1 move deep, then 2, then 3, until its time runs out, and plays the best move from the deepest search it finished. |
 
-The search runs in a Web Worker, so the page stays smooth while Gambit thinks.
+The search runs on a background thread (a Web Worker), so the page stays responsive while Gambit thinks.
 
 <details>
 <summary><b>More detail on each technique</b></summary>
 <br />
 
-**Alpha-beta search.** The core is NegaMax, a compact form of minimax: my best score is the negative of your best score. Alpha-beta pruning stops looking at a move as soon as it can't beat an option already found.
+**Alpha-beta pruning.** Gambit is written as NegaMax, a form of minimax that uses one function for both sides, because a position that is +2 for White is −2 for Black. During the search it tracks two bounds: the score Gambit can already guarantee (alpha) and the score the opponent can already guarantee (beta). Any branch that falls outside them can't change the final choice, so it is cut off.
 
-**Move ordering.** Pruning works best when strong moves come first. Gambit tries the captures that win the most for the least first, and opens each search with the best line from the one before.
+**Move ordering.** Captures are sorted so that cheap pieces taking valuable ones come first (a pawn taking a queen before a queen taking a pawn). The best move from the previous, shallower search goes ahead of everything.
 
-**Transposition table.** Each position is stored under a 64-bit hash with its score, depth and best move. At depth 5 this halves the work.
+**Transposition table.** Each position gets a 64-bit fingerprint (a Zobrist hash) built from its pieces and squares, so a lookup is instant. Each entry keeps the score, how deep it was searched and the best move found. At depth 5 this alone halves the positions searched.
 
-**Quiescence search.** Without it, Gambit would grab a defended pawn with its queen, because the recapture sits just past the end of its search.
+**Quiescence search.** Without it, Gambit would grab a defended pawn with its queen, because the recapture sits just past the end of its search. Following captures to the end avoids this "horizon effect".
 
-**Draw awareness.** Repeated positions and the 50-move rule score as draws. These scores depend on how a position was reached, so they are kept out of the transposition table.
+**Draw awareness.** Whether a position is a draw depends on how it was reached, not just what is on the board, so these scores are kept out of the transposition table.
 
-**Iterative deepening.** If time runs out mid-search, Gambit plays the best move from the last depth it finished.
+**Iterative deepening.** Each pass also tells the next one which moves to try first, so searching 1, 2, 3 and then 4 moves deep costs little more than searching 4 directly.
 
 </details>
 
@@ -75,8 +77,8 @@ The search runs in a Web Worker, so the page stays smooth while Gambit thinks.
 | File | Role |
 | --- | --- |
 | [`search.js`](web/public/js/engine/search.js) | The search and everything that speeds it up |
-| [`evaluate.js`](web/public/js/engine/evaluate.js) | Scores a position: material, plus tables of good squares for each piece |
-| [`board.js`](web/public/js/engine/board.js) | Fast move generation, about 575,000 positions per second |
+| [`evaluate.js`](web/public/js/engine/evaluate.js) | Scores a position: material, plus a bonus or penalty for each piece's square |
+| [`board.js`](web/public/js/engine/board.js) | Lists the legal moves in a position, at about 575,000 positions per second |
 | [`levels.js`](web/public/js/engine/levels.js) | Easy, Medium and Hard |
 | [`worker.js`](web/public/js/engine/worker.js), [`client.js`](web/public/js/engine/client.js) | Runs the search off the main thread |
 
@@ -84,13 +86,15 @@ The search runs in a Web Worker, so the page stays smooth while Gambit thinks.
 
 ### Searching less
 
-Positions searched to reach the same move, with and without the speed-ups:
+Plain minimax examines every line to the given depth. Gambit adds alpha-beta pruning, move ordering and the transposition table, and finds the same move:
 
 | Position | Plain minimax | Gambit | Saved |
 | --- | --- | --- | --- |
 | Start position, depth 4 | 216,369 | 2,004 | **99.1%** |
 | Italian Game, depth 4 | 978,800 | 9,706 | **99.0%** |
 | Kiwipete, depth 3 | 102,087 | 2,641 | **97.4%** |
+
+The Italian Game is a common opening. Kiwipete is a crowded middlegame position that chess programmers use as a stress test.
 
 <details>
 <summary><b>Each technique's share</b></summary>
@@ -114,13 +118,13 @@ Positions searched to reach the same move, with and without the speed-ups:
 | Medium | Looks 4 moves ahead | **1,780** | 1,706–1,859 |
 | Hard | Looks as far as it can in 2.5 seconds, usually 5–6 moves | **1,939** | 1,865–2,016 |
 
-Each level played 96 games against Stockfish 16.1 in its strength-limited mode, so these ratings are on Stockfish's scale rather than chess.com's or FIDE's.
+Each level played 96 games against Stockfish 16.1, set to play at fixed ratings. Gambit's rating is the one that best explains its results. With 96 games, the true rating is very likely within the 95% range. These ratings are on Stockfish's scale, which is not the same as chess.com's or the official FIDE ratings, so they measure strength rather than compare directly with a player's rating.
 
 <details>
 <summary><b>How the games were played</b></summary>
 <br />
 
-Every level faced two Stockfish settings, from 24 openings, playing each opening once with each color. The games used a 60s + 0.6s clock, the time control Stockfish's rating scale is calibrated for, and ran in parallel on GitHub Actions. Easy's weaker moves never give away a piece.
+Every level faced two Stockfish ratings, starting from 24 different openings and playing each opening once with each color, so neither side benefits from a lucky start. Each game used 60 seconds per side plus 0.6 seconds per move, the time control Stockfish's ratings are calibrated for. The games ran in parallel on GitHub Actions. On Easy, Gambit's deliberate weaker moves never give away a piece.
 
 | Level | Wins / draws / losses |
 | --- | --- |
@@ -149,7 +153,7 @@ Or open the repo in GitHub Codespaces, which sets everything up for you.
 
 - **Engine:** finds forced mates, wins free material, avoids walking into recaptures, respects its time limit and handles draws. Every speed-up returns the same move as plain minimax.
 - **Server:** plays real games through the server, covering turn order, illegal moves, clocks, private games, and players rejoining after a refresh or a server restart.
-- **Move generator:** counts every position reachable in a few moves and matches the published numbers. These tests found three bugs in the original version, all fixed.
+- **Move generator:** counts every position reachable in a few moves (a standard check called perft) and matches the published totals. These tests found three bugs in the original version, all fixed.
 
 </details>
 
