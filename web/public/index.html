@@ -3,73 +3,181 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chess</title>
+  <title>Gambit</title>
+  <link rel="icon" href="/favicon.ico?v=5" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png?v=5" />
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=5" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/assets/icon-512.png?v=5" />
+  <meta name="theme-color" content="#1f1b18" />
+  <meta name="description" content="Play chess against Gambit, a chess engine built from scratch with alpha-beta search. Easy, Medium and Hard levels, two-player and online games." />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Gambit: play a chess engine in your browser" />
+  <meta property="og:description" content="A chess engine built from scratch with alpha-beta search. Easy, Medium and Hard levels, two-player and online games." />
+  <meta property="og:url" content="https://chess-engine-1smz.onrender.com/" />
+  <meta property="og:image" content="https://chess-engine-1smz.onrender.com/assets/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
   <link rel="stylesheet" href="/css/style.css" />
-  <script src="/socket.io/socket.io.js"></script>
+  <!-- The home board's pieces, fetched with the page so the board appears complete -->
+  <link rel="preload" as="image" href="/pieces/kosal/wK.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/wQ.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/wR.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/wB.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/wN.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/wP.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/bK.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/bQ.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/bR.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/bB.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/bN.svg" />
+  <link rel="preload" as="image" href="/pieces/kosal/bP.svg" />
+  <script src="/socket.io/socket.io.js" defer></script>
+  <!-- Fetch the game's scripts in parallel instead of one after another -->
+  <link rel="modulepreload" href="/js/app.js" />
+  <link rel="modulepreload" href="/lib/chess.js" />
+  <link rel="modulepreload" href="/js/engine/client.js" />
+  <link rel="modulepreload" href="/js/engine/levels.js" />
+  <link rel="modulepreload" href="/js/engine/search.js" />
+  <link rel="modulepreload" href="/js/engine/evaluate.js" />
+  <link rel="modulepreload" href="/js/engine/board.js" />
+  <link rel="modulepreload" href="/js/sound.js" />
+
 </head>
-<body class="view-home" data-theme="classic" data-bg="light">
+<body class="view-home" data-theme="classic" data-bg="dark">
+  <script>
+    // A refresh during a game (or opening a game link) goes straight to the
+    // game: the home page stays hidden while the game is brought back.
+    try {
+      if (/^\/g\/[a-z0-9]+$/i.test(location.pathname) || sessionStorage.getItem('gambit-local-game')) {
+        document.body.classList.add('resuming');
+      }
+    } catch (e) { /* storage blocked: show the home page as usual */ }
+  </script>
   <!-- LANDING PAGE ONLY — no gameplay controls here -->
   <section id="menu" class="home">
     <div class="home-ambient" aria-hidden="true"></div>
 
     <header class="home-brand">
-      <img
-        class="home-title"
-        src="/assets/chess-title.png"
-        alt="CHESS"
-        width="559"
-        height="447"
-      />
+      <h1 class="logo" aria-label="Gambit">
+        <span class="logo-text" aria-hidden="true">Gamb</span>
+        <span class="logo-i" aria-hidden="true">
+          <img class="logo-pawn" src="/assets/logo/pawn.svg" alt="" />
+          <img class="logo-knight" src="/assets/logo/knight.svg" alt="" />
+        </span>
+        <span class="logo-text" aria-hidden="true">t</span>
+      </h1>
     </header>
 
     <div class="home-row">
       <!-- Board on the LEFT -->
       <div class="home-board-shell">
         <div class="home-board-wrap" aria-hidden="true">
-          <div id="preview-board" class="board preview-board"></div>
-          <div id="preview-confetti" class="preview-confetti"></div>
+          <div id="preview-board" class="board preview-board">
+            <!-- The starting position, drawn by the page itself so the board appears complete straight away; the script takes it over -->
+            <div class="square light" data-square="a8" role="gridcell" aria-label="a8, black rook"><img src="/pieces/kosal/bR.svg" alt="" draggable="false"></div><div class="square dark" data-square="b8" role="gridcell" aria-label="b8, black knight"><img src="/pieces/kosal/bN.svg" alt="" draggable="false"></div><div class="square light" data-square="c8" role="gridcell" aria-label="c8, black bishop"><img src="/pieces/kosal/bB.svg" alt="" draggable="false"></div><div class="square dark" data-square="d8" role="gridcell" aria-label="d8, black queen"><img src="/pieces/kosal/bQ.svg" alt="" draggable="false"></div><div class="square light" data-square="e8" role="gridcell" aria-label="e8, black king"><img src="/pieces/kosal/bK.svg" alt="" draggable="false"></div><div class="square dark" data-square="f8" role="gridcell" aria-label="f8, black bishop"><img src="/pieces/kosal/bB.svg" alt="" draggable="false"></div><div class="square light" data-square="g8" role="gridcell" aria-label="g8, black knight"><img src="/pieces/kosal/bN.svg" alt="" draggable="false"></div><div class="square dark" data-square="h8" role="gridcell" aria-label="h8, black rook"><img src="/pieces/kosal/bR.svg" alt="" draggable="false"></div><div class="square dark" data-square="a7" role="gridcell" aria-label="a7, black pawn"><img src="/pieces/kosal/bP.svg" alt="" draggable="false"></div><div class="square light" data-square="b7" role="gridcell" aria-label="b7, black pawn"><img src="/pieces/kosal/bP.svg" alt="" draggable="false"></div><div class="square dark" data-square="c7" role="gridcell" aria-label="c7, black pawn"><img src="/pieces/kosal/bP.svg" alt="" draggable="false"></div><div class="square light" data-square="d7" role="gridcell" aria-label="d7, black pawn"><img src="/pieces/kosal/bP.svg" alt="" draggable="false"></div><div class="square dark" data-square="e7" role="gridcell" aria-label="e7, black pawn"><img src="/pieces/kosal/bP.svg" alt="" draggable="false"></div><div class="square light" data-square="f7" role="gridcell" aria-label="f7, black pawn"><img src="/pieces/kosal/bP.svg" alt="" draggable="false"></div><div class="square dark" data-square="g7" role="gridcell" aria-label="g7, black pawn"><img src="/pieces/kosal/bP.svg" alt="" draggable="false"></div><div class="square light" data-square="h7" role="gridcell" aria-label="h7, black pawn"><img src="/pieces/kosal/bP.svg" alt="" draggable="false"></div><div class="square light" data-square="a6" role="gridcell" aria-label="a6, empty"></div><div class="square dark" data-square="b6" role="gridcell" aria-label="b6, empty"></div><div class="square light" data-square="c6" role="gridcell" aria-label="c6, empty"></div><div class="square dark" data-square="d6" role="gridcell" aria-label="d6, empty"></div><div class="square light" data-square="e6" role="gridcell" aria-label="e6, empty"></div><div class="square dark" data-square="f6" role="gridcell" aria-label="f6, empty"></div><div class="square light" data-square="g6" role="gridcell" aria-label="g6, empty"></div><div class="square dark" data-square="h6" role="gridcell" aria-label="h6, empty"></div><div class="square dark" data-square="a5" role="gridcell" aria-label="a5, empty"></div><div class="square light" data-square="b5" role="gridcell" aria-label="b5, empty"></div><div class="square dark" data-square="c5" role="gridcell" aria-label="c5, empty"></div><div class="square light" data-square="d5" role="gridcell" aria-label="d5, empty"></div><div class="square dark" data-square="e5" role="gridcell" aria-label="e5, empty"></div><div class="square light" data-square="f5" role="gridcell" aria-label="f5, empty"></div><div class="square dark" data-square="g5" role="gridcell" aria-label="g5, empty"></div><div class="square light" data-square="h5" role="gridcell" aria-label="h5, empty"></div><div class="square light" data-square="a4" role="gridcell" aria-label="a4, empty"></div><div class="square dark" data-square="b4" role="gridcell" aria-label="b4, empty"></div><div class="square light" data-square="c4" role="gridcell" aria-label="c4, empty"></div><div class="square dark" data-square="d4" role="gridcell" aria-label="d4, empty"></div><div class="square light" data-square="e4" role="gridcell" aria-label="e4, empty"></div><div class="square dark" data-square="f4" role="gridcell" aria-label="f4, empty"></div><div class="square light" data-square="g4" role="gridcell" aria-label="g4, empty"></div><div class="square dark" data-square="h4" role="gridcell" aria-label="h4, empty"></div><div class="square dark" data-square="a3" role="gridcell" aria-label="a3, empty"></div><div class="square light" data-square="b3" role="gridcell" aria-label="b3, empty"></div><div class="square dark" data-square="c3" role="gridcell" aria-label="c3, empty"></div><div class="square light" data-square="d3" role="gridcell" aria-label="d3, empty"></div><div class="square dark" data-square="e3" role="gridcell" aria-label="e3, empty"></div><div class="square light" data-square="f3" role="gridcell" aria-label="f3, empty"></div><div class="square dark" data-square="g3" role="gridcell" aria-label="g3, empty"></div><div class="square light" data-square="h3" role="gridcell" aria-label="h3, empty"></div><div class="square light" data-square="a2" role="gridcell" aria-label="a2, white pawn"><img src="/pieces/kosal/wP.svg" alt="" draggable="false"></div><div class="square dark" data-square="b2" role="gridcell" aria-label="b2, white pawn"><img src="/pieces/kosal/wP.svg" alt="" draggable="false"></div><div class="square light" data-square="c2" role="gridcell" aria-label="c2, white pawn"><img src="/pieces/kosal/wP.svg" alt="" draggable="false"></div><div class="square dark" data-square="d2" role="gridcell" aria-label="d2, white pawn"><img src="/pieces/kosal/wP.svg" alt="" draggable="false"></div><div class="square light" data-square="e2" role="gridcell" aria-label="e2, white pawn"><img src="/pieces/kosal/wP.svg" alt="" draggable="false"></div><div class="square dark" data-square="f2" role="gridcell" aria-label="f2, white pawn"><img src="/pieces/kosal/wP.svg" alt="" draggable="false"></div><div class="square light" data-square="g2" role="gridcell" aria-label="g2, white pawn"><img src="/pieces/kosal/wP.svg" alt="" draggable="false"></div><div class="square dark" data-square="h2" role="gridcell" aria-label="h2, white pawn"><img src="/pieces/kosal/wP.svg" alt="" draggable="false"></div><div class="square dark" data-square="a1" role="gridcell" aria-label="a1, white rook"><img src="/pieces/kosal/wR.svg" alt="" draggable="false"></div><div class="square light" data-square="b1" role="gridcell" aria-label="b1, white knight"><img src="/pieces/kosal/wN.svg" alt="" draggable="false"></div><div class="square dark" data-square="c1" role="gridcell" aria-label="c1, white bishop"><img src="/pieces/kosal/wB.svg" alt="" draggable="false"></div><div class="square light" data-square="d1" role="gridcell" aria-label="d1, white queen"><img src="/pieces/kosal/wQ.svg" alt="" draggable="false"></div><div class="square dark" data-square="e1" role="gridcell" aria-label="e1, white king"><img src="/pieces/kosal/wK.svg" alt="" draggable="false"></div><div class="square light" data-square="f1" role="gridcell" aria-label="f1, white bishop"><img src="/pieces/kosal/wB.svg" alt="" draggable="false"></div><div class="square dark" data-square="g1" role="gridcell" aria-label="g1, white knight"><img src="/pieces/kosal/wN.svg" alt="" draggable="false"></div><div class="square light" data-square="h1" role="gridcell" aria-label="h1, white rook"><img src="/pieces/kosal/wR.svg" alt="" draggable="false"></div>
+          </div>
         </div>
       </div>
 
       <!-- Mode card on the RIGHT -->
       <div class="mode-card">
-        <div class="mode-card-crown" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-            <path d="M3 8l3.5 3L9 5l3 6 3-6 2.5 6L21 8v11H3V8z"/>
-          </svg>
+        <div id="link-notice" class="link-notice" role="status" hidden>
+          <p class="link-notice-title">That game isn't available</p>
+          <p class="link-notice-text">Check the link or code, or start a new game.</p>
         </div>
-        <h1>Get started</h1>
-        <p class="sub">Choose your game mode</p>
+        <div id="home-main">
+        <h2>Play</h2>
         <div class="menu-actions">
-          <button type="button" data-mode="local-pvp">
+          <button type="button" id="btn-play-engine" class="mode-primary">
             <span class="mode-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-                <path d="M12 2a2.2 2.2 0 0 1 2.1 2.7l-.3 1.1h1.7a1 1 0 0 1 0 2h-.9l.6 2.2A3.5 3.5 0 0 1 17 13.5V15H7v-1.5a3.5 3.5 0 0 1 1.8-3.5l.6-2.2H8a1 1 0 1 1 0-2h1.7l-.3-1.1A2.2 2.2 0 0 1 12 2zm-4 15h8v2.5a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 8 19.5V17z"/>
-              </svg>
+              <img src="/assets/logo/knight.svg" alt="" width="34" height="34" />
             </span>
-            Two Player
-          </button>
-          <button type="button" data-mode="local-ai">
-            <span class="mode-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-                <path d="M12 2l1.6 3.2L17 6l-2.4 2.1.7 3.4L12 9.8 8.7 11.5l.7-3.4L7 6l3.4-.8L12 2zm-5 12h10a1 1 0 0 1 1 1v1H6v-1a1 1 0 0 1 1-1zm-1 4h12v2.2A1.8 1.8 0 0 1 16.2 22H7.8A1.8 1.8 0 0 1 6 20.2V18z"/>
-              </svg>
+            <span class="mode-text">
+              <span class="mode-name">Play the engine</span>
+              <span class="mode-desc">Easy, Medium or Hard</span>
             </span>
-            Single Player
           </button>
-          <button type="button" data-mode="online-create">
-            <span class="mode-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8">
-                <circle cx="12" cy="12" r="9"/>
-                <path d="M3 12h18M12 3c2.5 2.8 3.8 5.8 3.8 9S14.5 18.2 12 21c-2.5-2.8-3.8-5.8-3.8-9S9.5 5.8 12 3z"/>
-              </svg>
-            </span>
-            Play Online
+          <div class="mode-secondary">
+            <button type="button" id="btn-two-player">
+              <span class="mode-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                  <circle cx="9" cy="8" r="3.2"/>
+                  <circle cx="17" cy="9" r="2.6"/>
+                  <path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5M14.5 14.6c.8-.4 1.6-.6 2.5-.6 2.2 0 3.9 1.4 4.4 4"/>
+                </svg>
+              </span>
+              Two Player
+            </button>
+            <button type="button" id="btn-play-online">
+              <span class="mode-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <circle cx="12" cy="12" r="9"/>
+                  <path d="M3 12h18M12 3c2.5 2.8 3.8 5.8 3.8 9S14.5 18.2 12 21c-2.5-2.8-3.8-5.8-3.8-9S9.5 5.8 12 3z"/>
+                </svg>
+              </span>
+              Play Online
+            </button>
+          </div>
+        </div>
+        </div>
+        <div id="engine-panel" class="online-panel" hidden>
+          <button type="button" class="back-btn" data-back>
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg>
+            Back
           </button>
+          <h2>Play the engine</h2>
+          <input id="engine-name" class="my-name name-input-home" type="text" maxlength="20" placeholder="Your name" aria-label="Your name" autocomplete="off" spellcheck="false" />
+          <div class="choice-label">Difficulty</div>
+          <div class="choice-row" id="engine-level-choice" role="radiogroup" aria-label="Difficulty">
+            <button type="button" role="radio" data-level="easy">Easy</button>
+            <button type="button" role="radio" data-level="medium">Medium</button>
+            <button type="button" role="radio" data-level="hard">Hard</button>
+          </div>
+          <div class="choice-label">Play as</div>
+          <div class="choice-row" id="engine-color-choice" role="radiogroup" aria-label="Play as">
+            <button type="button" role="radio" data-color="w">White</button>
+            <button type="button" role="radio" data-color="b">Black</button>
+          </div>
+          <button type="button" data-mode="local-ai" class="primary-btn create-btn">Start game</button>
+        </div>
+        <div id="pvp-panel" class="online-panel" hidden>
+          <button type="button" class="back-btn" data-back>
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg>
+            Back
+          </button>
+          <h2>Two player</h2>
+          <input id="pvp-name-w" class="name-input-home" type="text" autocomplete="off" maxlength="20" placeholder="White player's name" aria-label="White player's name" spellcheck="false" />
+          <input id="pvp-name-b" class="name-input-home" type="text" autocomplete="off" maxlength="20" placeholder="Black player's name" aria-label="Black player's name" spellcheck="false" />
+          <button type="button" data-mode="local-pvp" class="primary-btn create-btn">Start game</button>
+        </div>
+        <div id="online-panel" class="online-panel" hidden>
+          <button type="button" id="btn-online-back" class="back-btn" data-back>
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg>
+            Back
+          </button>
+          <h2>Play online</h2>
+          <input id="online-name" class="my-name name-input-home" type="text" maxlength="20" placeholder="Your name" aria-label="Your name" autocomplete="off" spellcheck="false" />
+          <button type="button" data-mode="online-create" class="primary-btn create-btn">Create a game</button>
+          <p class="create-note">You'll get a link and a code to send your friend.</p>
+          <form id="join-form" class="join-form" autocomplete="off" novalidate>
+            <label for="join-code" class="join-label">Have a code? Join your friend's game</label>
+            <div class="join-row">
+              <input id="join-code" type="text" maxlength="12" placeholder="Enter code" autocapitalize="characters" spellcheck="false" />
+              <button type="submit" id="btn-join">Join</button>
+            </div>
+          </form>
         </div>
         <p id="menu-error" class="error" hidden></p>
       </div>
     </div>
+
+    <footer class="home-footer">
+      <span>© 2026 Siya Doshi</span>
+      <a href="https://github.com/SiyaDoshi/Chess-Engine" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/SiyaDoshi/Chess-Engine#how-it-thinks" target="_blank" rel="noopener">How it works</a>
+      <a href="https://github.com/SiyaDoshi/Chess-Engine#credits" target="_blank" rel="noopener">Credits</a>
+    </footer>
   </section>
 
   <!-- GAMEPLAY ONLY — shown after a mode is selected -->
@@ -78,22 +186,20 @@
       <button type="button" id="btn-home" class="nav-btn">Home</button>
       <span id="mode-label" class="mode-pill">Game</span>
 
-      <label class="nav-field">
-        <span>Board</span>
-        <select id="theme-select">
-          <option value="classic">Classic Brown</option>
-          <option value="green">Green</option>
-          <option value="blue">Blue</option>
-          <option value="gray">Gray</option>
-          <option value="purple">Purple</option>
+      <label class="nav-field" id="level-field" hidden>
+        <span>Difficulty</span>
+        <select id="level-select">
+          <option value="easy">Easy</option>
+          <option value="medium" selected>Medium</option>
+          <option value="hard">Hard</option>
         </select>
       </label>
 
-      <label class="nav-field">
-        <span>Background</span>
-        <select id="bg-select">
-          <option value="light">Light</option>
-          <option value="dark">Dark</option>
+      <label class="nav-field" id="color-field" hidden>
+        <span>Play as</span>
+        <select id="color-select">
+          <option value="w">White</option>
+          <option value="b">Black</option>
         </select>
       </label>
 
@@ -108,50 +214,195 @@
           <option value="5+3">5+3</option>
         </select>
       </label>
+
+      <div class="settings">
+        <button type="button" id="btn-settings" class="icon-btn" aria-label="Settings" aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
+          </svg>
+        </button>
+        <div id="settings-menu" class="settings-menu" role="menu" hidden>
+          <label class="nav-field">
+            <span>Board</span>
+            <select id="theme-select">
+              <option value="green">Sage Green</option>
+              <option value="classic">Classic Brown</option>
+              <option value="blue">Blue</option>
+              <option value="gray">Gray</option>
+              <option value="purple">Pastel Purple</option>
+            </select>
+          </label>
+
+          <label class="nav-field">
+            <span>Pieces</span>
+            <select id="piece-select">
+              <option value="kosal">Kosal</option>
+              <option value="classic">Classic</option>
+            </select>
+          </label>
+
+          <label class="nav-field nav-toggle">
+            <span>Sound</span>
+            <input type="checkbox" id="sound-toggle" checked />
+          </label>
+
+          <label class="nav-field nav-toggle">
+            <span>Show possible moves</span>
+            <input type="checkbox" id="legal-toggle" checked />
+          </label>
+
+          <label class="nav-field">
+            <span>Background</span>
+            <select id="bg-select">
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+            </select>
+          </label>
+        </div>
+      </div>
     </header>
 
     <div class="game-body">
-      <div class="board-column">
-        <div class="clocks" id="clocks">
-          <div class="clock" id="clock-black" data-side="b">
-            <span class="clock-label">Black</span>
-            <span class="clock-time" id="time-black">5:00</span>
+      <div class="board-area">
+        <div class="player-bar" id="clock-black" data-side="b">
+          <div class="player-info">
+            <span class="side-badge" aria-hidden="true"><img src="/pieces/kosal/bP.svg" alt="" /></span>
+            <button type="button" class="player-name clock-label" disabled>Black</button>
+            <span class="thinking" aria-label="Thinking" hidden><i></i><i></i><i></i></span>
+            <span class="captured" id="captured-by-black" aria-label="Pieces Black has captured"></span>
           </div>
-          <div class="clock" id="clock-white" data-side="w">
-            <span class="clock-label">White</span>
-            <span class="clock-time" id="time-white">5:00</span>
+          <span class="clock-time" id="time-black">5:00</span>
+        </div>
+
+        <div class="board-row">
+          <div id="eval-bar" class="eval-bar" role="img" aria-label="Evaluation 0.0" title="Engine evaluation: who is better, and by how much" hidden>
+            <div class="eval-fill"></div>
+            <span class="eval-label">0.0</span>
+          </div>
+          <div class="board-wrap">
+            <div id="board" class="board" role="grid" aria-label="Chess board"></div>
+            <div id="game-over" class="game-over" hidden>
+              <div class="game-over-card" role="dialog" aria-labelledby="game-over-title">
+                <p id="game-over-title" class="game-over-title">Checkmate</p>
+                <p id="game-over-detail" class="game-over-detail"></p>
+                <div class="game-over-actions">
+                  <button type="button" id="btn-play-again" class="primary-btn">Play again</button>
+                  <button type="button" id="btn-view-board">View board</button>
+                </div>
+              </div>
+            </div>
+            <div id="leave-game" class="game-over leave-game" hidden>
+              <div class="game-over-card" role="alertdialog" aria-labelledby="leave-game-title" aria-describedby="leave-game-detail">
+                <p id="leave-game-title" class="game-over-title">Leave this game?</p>
+                <p id="leave-game-detail" class="game-over-detail">The game in progress will end.</p>
+                <div class="game-over-actions">
+                  <button type="button" id="btn-leave-game" class="primary-btn">Leave game</button>
+                  <button type="button" id="btn-keep-playing">Keep playing</button>
+                </div>
+              </div>
+            </div>
+            <div id="promotion" class="promotion" hidden>
+              <div class="promotion-box" role="dialog" aria-label="Choose a piece to promote to">
+                <p class="promotion-title">Promote to</p>
+                <div class="promotion-choices"></div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="board-wrap">
-          <div id="board" class="board" aria-label="Chess board"></div>
+        <div class="player-bar" id="clock-white" data-side="w">
+          <div class="player-info">
+            <span class="side-badge" aria-hidden="true"><img src="/pieces/kosal/wP.svg" alt="" /></span>
+            <button type="button" class="player-name clock-label" disabled>White</button>
+            <span class="thinking" aria-label="Thinking" hidden><i></i><i></i><i></i></span>
+            <span class="captured" id="captured-by-white" aria-label="Pieces White has captured"></span>
+          </div>
+          <span class="clock-time" id="time-white">5:00</span>
+        </div>
+      </div>
+
+      <aside class="side-panel">
+        <div class="panel-card status-card">
+          <p id="status" class="status">Your turn</p>
+          <p id="you-are" class="visually-hidden"></p>
+          <p id="game-error" class="error" hidden></p>
         </div>
 
-        <p id="status" class="status">Your turn</p>
-        <p id="you-are" class="muted"></p>
-        <p id="game-error" class="error" hidden></p>
+        <div id="lobby-panel" class="panel-card lobby-panel" hidden>
+          <h3 class="card-title">Invite a friend</h3>
+          <div class="share-row">
+            <code id="share-link"></code>
+            <button type="button" id="btn-copy" class="small-btn">Copy link</button>
+          </div>
+          <div class="share-row">
+            <span class="share-code-label">Code</span>
+            <strong id="room-code"></strong>
+            <button type="button" id="btn-copy-code" class="small-btn">Copy code</button>
+          </div>
+          <p id="wait-msg" class="wait-msg"><span id="wait-text">Waiting for opponent to join</span></p>
+        </div>
+
+        <div id="engine-card" class="panel-card engine-card" hidden>
+          <div class="engine-head">
+            <span class="engine-title">Score</span>
+            <span id="engine-eval" class="engine-eval" title="Who is ahead, in pawns. Positive favors White, negative favors Black. M3 means White can force checkmate in three moves; −M3 means Black can.">0.0</span>
+          </div>
+          <button type="button" id="btn-engine-help" class="details-btn" aria-expanded="false" aria-controls="engine-details">How Gambit chose its move</button>
+          <!-- Hidden by default: the best line would tell you the engine's plan -->
+          <div id="engine-details" class="engine-details" hidden>
+            <dl class="engine-stats">
+              <div><dt>Depth</dt><dd id="engine-depth">–</dd></div>
+              <div><dt>Positions</dt><dd id="engine-nodes">–</dd></div>
+              <div><dt>Time</dt><dd id="engine-time">–</dd></div>
+            </dl>
+            <p class="engine-line"><span class="engine-line-label">Best line</span> <span id="engine-line">–</span></p>
+            <div class="engine-help">
+              <p class="engine-help-title">What these mean</p>
+              <dl>
+                <div><dt>Score</dt><dd>Who is ahead, in pawns. Positive favors White, negative favors Black. M3 means White can force checkmate in three moves; −M3 means Black can.</dd></div>
+                <div><dt>Depth</dt><dd>How many moves ahead Gambit searched. Each side's move counts as one.</dd></div>
+                <div><dt>Positions</dt><dd>How many positions Gambit evaluated.</dd></div>
+                <div><dt>Time</dt><dd>How long Gambit took to choose.</dd></div>
+                <div><dt>Best line</dt><dd>The moves Gambit expects if both sides play its top choices.</dd></div>
+              </dl>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-card moves-card">
+          <div class="card-title">Moves</div>
+          <div id="review-bar" class="review-bar" role="status" hidden>
+            <span id="review-text">Looking back</span>
+            <button type="button" id="btn-live" class="small-btn">Back to game</button>
+          </div>
+          <ol id="move-list" class="move-list" aria-label="Moves played"></ol>
+        </div>
 
         <div id="play-controls" class="play-controls" hidden>
           <button type="button" id="btn-undo">Undo</button>
           <button type="button" id="btn-reset">Reset</button>
+          <button type="button" id="btn-flip" aria-label="Flip board">Flip</button>
+          <button type="button" id="btn-hint" hidden>Hint</button>
         </div>
-      </div>
 
-      <aside id="lobby-panel" class="lobby-panel" hidden>
-        <h3>Invite a friend</h3>
-        <p class="share-label">Share this link:</p>
-        <code id="share-link"></code>
-        <button type="button" id="btn-copy" class="primary-btn">Copy link</button>
-        <p class="room-code-line">Room code: <strong id="room-code"></strong></p>
-        <p id="wait-msg" class="muted">Waiting for opponent…</p>
+
+        <p id="room-badge" class="room-badge" hidden>Online Match</p>
       </aside>
-
-      <p id="room-badge" class="room-badge" hidden>Online Match</p>
     </div>
   </section>
 
+  <script>
+    // Show the home page in one go: once the page, its pieces and fonts have loaded
+    // (at most 3s), the board, title and Play card fade in together and the logo starts.
+    (function () {
+      var show = function () { document.body.classList.add('home-ready'); };
+      var loaded = new Promise(function (r) { window.addEventListener('load', r); });
+      var fonts = document.fonts ? document.fonts.ready : Promise.resolve();
+      Promise.race([Promise.all([loaded, fonts]), new Promise(function (r) { setTimeout(r, 3000); })]).then(show);
+    })();
+  </script>
   <script src="/js/board.js"></script>
-  <script src="/js/ai.js"></script>
   <script type="module" src="/js/app.js"></script>
 </body>
 </html>

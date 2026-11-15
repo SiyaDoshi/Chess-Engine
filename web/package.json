@@ -1,15 +1,20 @@
 {
-  "name": "chess-online",
+  "name": "gambit",
   "version": "1.0.0",
-  "description": "Online chess — local PvP, vs AI, and share-link multiplayer",
+  "description": "Gambit: a chess engine written from scratch, with single player, two player and online play",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test": "node --test tests/*.test.mjs",
+    "bench": "node bench/bench.mjs"
   },
   "dependencies": {
     "chess.js": "^1.0.0",
     "express": "^4.21.0",
     "socket.io": "^4.8.0"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.4"
   }
 }

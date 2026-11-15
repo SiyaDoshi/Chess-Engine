@@ -16,13 +16,15 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const { Chess } = require('chess.js');
+const { randomBytes, createHash } = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
-const MAX_GAMES = 3;
+// Games are tiny in memory; 10 leaves room now that left games wait 2 minutes for their players
+const MAX_GAMES = Number(process.env.MAX_GAMES ?? 10);
 
 const TIME_PRESETS = {
   '1+0': { baseMs: 60_000, incrementMs: 0 },
@@ -45,7 +47,8 @@ app.get('/g/:id', (req, res) => {
 });
 
 function makeGameId() {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  // No 0/o, 1/l/i: the code is meant to be read out and typed
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
   let id = '';
   for (let i = 0; i < 4; i++) id += chars[Math.floor(Math.random() * chars.length)];
   return id;
@@ -91,10 +94,13 @@ function settleClocks(game, now = Date.now()) {
   }
 }
 
+// Clocks start with White's first move (not when Black joins), and resume
+// when a player rejoins a game already in progress.
 function maybeStartClocks(game) {
   if (
     game.whiteId &&
     game.blackId &&
+    game.chess.history().length > 0 &&
     !game.clocks.clocksRunning &&
     !game.clocks.timedOut &&
     !game.chess.isGameOver()
@@ -109,7 +115,16 @@ function publicState(game, gameId) {
   return {
     gameId,
     fen: game.chess.fen(),
+    pgn: game.chess.pgn(), // full move history, so clients can show the move list
     turn: game.chess.turn(),
+    // Hashes of the seat keys: each browser keeps them so that, if the server
+    // restarts, the game can be restored and both players get their seats back
+    seatHashes: {
+      w: game.tokens.w ? hashKey(game.tokens.w) : game.keyHashes?.w ?? null,
+      b: game.tokens.b ? hashKey(game.tokens.b) : game.keyHashes?.b ?? null,
+    },
+    whiteName: game.names.w,
+    blackName: game.names.b,
     whiteConnected: !!game.whiteId,
     blackConnected: !!game.blackId,
     isCheckmate: game.chess.isCheckmate(),
@@ -141,15 +156,78 @@ function emitState(gameId) {
   io.to(gameId).emit('playerUpdate', publicState(game, gameId));
 }
 
+/**
+ * Wrap a socket event handler so bad input can never crash the server.
+ * Clients may send no data, the wrong type, or no reply callback; the
+ * handler always gets an object and a callable reply, and any unexpected
+ * error is logged and answered instead of taking the whole process down.
+ */
+function safe(event, handler) {
+  return (payload, ack) => {
+    const reply = typeof ack === 'function' ? ack : typeof payload === 'function' ? payload : () => {};
+    const data = payload && typeof payload === 'object' ? payload : {};
+    try {
+      handler(data, reply);
+    } catch (err) {
+      console.error(`Error in ${event}:`, err);
+      reply({ ok: false, error: 'Something went wrong. Please try again.' });
+    }
+  };
+}
+
+const SQUARE = /^[a-h][1-8]$/;
+/** How long an empty game is kept so both players can come back (ms). */
+const EMPTY_GAME_GRACE_MS = Number(process.env.EMPTY_GAME_GRACE_MS ?? 120000);
+
+/** A private key for one seat, so its player (and only them) can rejoin. */
+const newSeatToken = () => randomBytes(16).toString('hex');
+const hashKey = (key) => createHash('sha256').update(String(key)).digest('hex');
+
+/**
+ * The seat a key opens, or null. A game restored after a server restart only
+ * knows the absent player's key by its hash, until they come back with it.
+ */
+function seatForKey(game, key) {
+  if (typeof key !== 'string' || !key) return null;
+  for (const color of ['w', 'b']) {
+    if (game.tokens[color] === key) return color;
+    if (!game.tokens[color] && game.keyHashes?.[color] === hashKey(key)) {
+      game.tokens[color] = key;
+      return color;
+    }
+  }
+  return null;
+}
+
+/** Put a socket in a seat, replacing any older connection of the same player. */
+function takeSeat(socket, game, id, color) {
+  const key = color === 'w' ? 'whiteId' : 'blackId';
+  const old = game[key];
+  if (old && old !== socket.id) io.sockets.sockets.get(old)?.disconnect(true);
+  game[key] = socket.id;
+  clearTimeout(game.emptyTimer);
+  game.emptyTimer = null;
+  socket.join(id);
+  socket.data.gameId = id;
+  socket.data.color = color;
+}
+const MAX_NAME = 20;
+
+/** A display name: plain printable text, at most 20 characters, or ''. */
+function cleanName(name) {
+  if (typeof name !== 'string') return '';
+  return [...name.replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/\s+/g, ' ').trim()]
+    .slice(0, MAX_NAME)
+    .join('')
+    .trim();
+}
+
 io.on('connection', (socket) => {
   console.log('Connected:', socket.id);
 
-  socket.on('createGame', (payload, ack) => {
-    const cb = typeof payload === 'function' ? payload : ack;
-    const opts = typeof payload === 'function' ? {} : (payload || {});
-
+  socket.on('createGame', safe('createGame', (opts, cb) => {
     if (games.size >= MAX_GAMES) {
-      cb({ ok: false, error: 'Server full — only 3 games allowed at once. Try later.' });
+      cb({ ok: false, error: `Server full: only ${MAX_GAMES} games at once. Please try again in a few minutes.` });
       return;
     }
 
@@ -159,26 +237,28 @@ io.on('connection', (socket) => {
     const timeControl = parseTimeControl(opts.timeControl);
     games.set(id, {
       chess: new Chess(),
-      whiteId: socket.id,
+      whiteId: null,
       blackId: null,
+      tokens: { w: newSeatToken(), b: null }, // b is set when the friend joins
+      names: { w: '', b: '' }, // display names; empty means "White" / "Black"
       clocks: createClockState(timeControl),
+      emptyTimer: null,
     });
-
-    socket.join(id);
-    socket.data.gameId = id;
-    socket.data.color = 'w';
+    const game = games.get(id);
+    takeSeat(socket, game, id, 'w');
 
     console.log(`Game ${id} created (${timeControl}). Active: ${games.size}/${MAX_GAMES}`);
     cb({
       ok: true,
       gameId: id,
       color: 'w',
+      token: game.tokens.w,
       sharePath: `/g/${id}`,
-      state: publicState(games.get(id), id),
+      state: publicState(game, id),
     });
-  });
+  }));
 
-  socket.on('setTimeControl', ({ timeControl }, ack) => {
+  socket.on('setTimeControl', safe('setTimeControl', ({ timeControl }, ack) => {
     const id = socket.data.gameId;
     const game = games.get(id);
     if (!game) {
@@ -189,7 +269,7 @@ io.on('connection', (socket) => {
       ack?.({ ok: false, error: 'Only the host can change the timer.' });
       return;
     }
-    if (game.blackId) {
+    if (game.tokens.b || game.keyHashes?.b) {
       ack?.({ ok: false, error: 'Timer locked once the opponent joins.' });
       return;
     }
@@ -198,10 +278,18 @@ io.on('connection', (socket) => {
     const state = publicState(game, id);
     io.to(id).emit('playerUpdate', state);
     ack?.({ ok: true, state });
-  });
+  }));
 
-  socket.on('joinGame', ({ gameId }, ack) => {
-    const id = (gameId || '').toLowerCase();
+  /*
+   * Joining: a player who brings their seat key gets their own seat back
+   * (after a refresh or a dropped connection). A backup key (kept by the
+   * browser across tabs) only works while that seat is empty, so a second
+   * tab in the same browser doesn't steal the first tab's seat. Otherwise the visitor takes
+   * the free Black seat. Once both seats belong to someone, the game is
+   * private: nobody else can join or watch.
+   */
+  socket.on('joinGame', safe('joinGame', ({ gameId, token, backupToken }, ack) => {
+    const id = typeof gameId === 'string' ? gameId.trim().toLowerCase() : '';
     const game = games.get(id);
 
     if (!game) {
@@ -209,47 +297,107 @@ io.on('connection', (socket) => {
       return;
     }
 
-    if (!game.whiteId) {
-      game.whiteId = socket.id;
-      socket.join(id);
-      socket.data.gameId = id;
-      socket.data.color = 'w';
-      maybeStartClocks(game);
-      const state = publicState(game, id);
-      socket.to(id).emit('playerUpdate', state);
-      ack({ ok: true, gameId: id, color: 'w', state });
+    let color = seatForKey(game, token);
+    if (!color) {
+      const backup = seatForKey(game, backupToken);
+      if (backup && !game[backup === 'w' ? 'whiteId' : 'blackId']) color = backup;
+    }
+    const rejoined = !!color;
+    if (!color && !game.tokens.b && !game.keyHashes?.b) {
+      color = 'b';
+      game.tokens.b = newSeatToken();
+      game.names.b = '';
+    }
+    if (!color) {
+      ack({ ok: false, full: true, error: 'This game already has two players.' });
       return;
     }
 
-    if (!game.blackId) {
-      game.blackId = socket.id;
-      socket.join(id);
-      socket.data.gameId = id;
-      socket.data.color = 'b';
-      maybeStartClocks(game);
-      const state = publicState(game, id);
-      io.to(id).emit('playerUpdate', state);
-      ack({ ok: true, gameId: id, color: 'b', state });
+    takeSeat(socket, game, id, color);
+    maybeStartClocks(game);
+    const state = publicState(game, id);
+    socket.to(id).emit('playerUpdate', state);
+    ack({ ok: true, gameId: id, color, token: game.tokens[color], rejoined, state });
+  }));
+
+  /*
+   * Restore a game the server no longer has (it restarted: a redeploy, or the
+   * host moving it). The returning player sends their copy of the game; the
+   * moves are replayed and checked like any other moves. Their key must match
+   * the seat they claim, and the other seat stays reserved for whoever holds
+   * the matching key.
+   */
+  socket.on('restoreGame', safe('restoreGame', ({ gameId, token, snapshot }, ack) => {
+    const id = typeof gameId === 'string' ? gameId.trim().toLowerCase() : '';
+    if (games.has(id)) {
+      ack({ ok: false, exists: true });
       return;
     }
-
-    socket.join(id);
-    socket.data.gameId = id;
-    socket.data.color = 'spectator';
-    ack({
-      ok: true,
-      gameId: id,
-      color: 'spectator',
-      state: publicState(game, id),
-      note: 'Both seats taken — you are spectating.',
+    const snap = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    const hashes = snap.seatHashes && typeof snap.seatHashes === 'object' ? snap.seatHashes : {};
+    const color = typeof token === 'string' && token
+      ? ['w', 'b'].find((c) => hashes[c] === hashKey(token))
+      : null;
+    if (!/^[a-z0-9]{3,12}$/.test(id) || !color || games.size >= MAX_GAMES) {
+      ack({ ok: false, error: 'This game ended when the server restarted.' });
+      return;
+    }
+    const chess = new Chess();
+    if (typeof snap.pgn === 'string' && snap.pgn.trim()) {
+      try {
+        chess.loadPgn(snap.pgn.slice(0, 20000));
+      } catch {
+        ack({ ok: false, error: 'This game ended when the server restarted.' });
+        return;
+      }
+    }
+    const clocks = createClockState(snap.timeControl);
+    const cap = clocks.whiteMs + clocks.incrementMs * (chess.history().length + 1);
+    const ms = (v, fallback) => (Number.isFinite(v) ? Math.min(Math.max(0, v), cap) : fallback);
+    clocks.whiteMs = ms(snap.whiteMs, clocks.whiteMs);
+    clocks.blackMs = ms(snap.blackMs, clocks.blackMs);
+    const other = color === 'w' ? 'b' : 'w';
+    games.set(id, {
+      chess,
+      whiteId: null,
+      blackId: null,
+      tokens: { [color]: token, [other]: null },
+      keyHashes: { [other]: typeof hashes[other] === 'string' ? hashes[other] : null },
+      names: { w: cleanName(snap.whiteName), b: cleanName(snap.blackName) },
+      clocks,
+      emptyTimer: null,
     });
-  });
+    const game = games.get(id);
+    takeSeat(socket, game, id, color);
+    console.log(`Restored game ${id} from ${color === 'w' ? 'White' : 'Black'}'s copy (${chess.history().length} moves)`);
+    ack({ ok: true, gameId: id, color, token, rejoined: true, restored: true, state: publicState(game, id) });
+  }));
 
-  socket.on('makeMove', ({ from, to, promotion }, ack) => {
+  // A seated player names themselves. Everyone in the room sees it.
+  socket.on('setName', safe('setName', ({ name }, ack) => {
+    const id = socket.data.gameId;
+    const game = id && games.get(id);
+    const color = socket.data.color;
+    if (!game || (color !== 'w' && color !== 'b')) {
+      ack({ ok: false, error: 'Only players can set a name.' });
+      return;
+    }
+    game.names[color] = cleanName(name);
+    emitState(id);
+    ack({ ok: true, name: game.names[color] });
+  }));
+
+  socket.on('makeMove', safe('makeMove', ({ from, to, promotion }, ack) => {
+    if (!SQUARE.test(String(from)) || !SQUARE.test(String(to))) {
+      ack({ ok: false, error: 'Illegal move.' });
+      return;
+    }
+    const promoteTo = ['q', 'r', 'b', 'n'].includes(promotion) ? promotion : 'q';
     const id = socket.data.gameId;
     const game = games.get(id);
     if (!game) {
-      ack({ ok: false, error: 'No active game.' });
+      // This connection isn't in a game (e.g. it just reconnected): the client rejoins and retries
+      ack({ ok: false, rejoin: true, error: 'Reconnecting to the game…' });
       return;
     }
 
@@ -262,8 +410,8 @@ io.on('connection', (socket) => {
     }
 
     const color = socket.data.color;
-    if (color !== 'w' && color !== 'b') {
-      ack({ ok: false, error: 'Spectators cannot move.' });
+    if ((color !== 'w' && color !== 'b') || game[color === 'w' ? 'whiteId' : 'blackId'] !== socket.id) {
+      ack({ ok: false, rejoin: true, error: 'Reconnecting to the game…' });
       return;
     }
     if (game.chess.turn() !== color) {
@@ -277,7 +425,7 @@ io.on('connection', (socket) => {
 
     let move;
     try {
-      move = game.chess.move({ from, to, promotion: promotion || 'q' });
+      move = game.chess.move({ from, to, promotion: promoteTo });
     } catch {
       move = null;
     }
@@ -301,14 +449,16 @@ io.on('connection', (socket) => {
     const state = publicState(game, id);
     io.to(id).emit('moveMade', { move, state });
     ack({ ok: true, move, state });
-  });
+  }));
 
-  socket.on('disconnect', () => {
+  socket.on('disconnect', (reason) => {
     const id = socket.data.gameId;
     if (!id) return;
     const game = games.get(id);
     if (!game) return;
 
+    // An old connection replaced by the same player rejoining: nothing changes
+    if (game.whiteId !== socket.id && game.blackId !== socket.id) return;
     if (game.whiteId === socket.id) game.whiteId = null;
     if (game.blackId === socket.id) game.blackId = null;
 
@@ -320,8 +470,11 @@ io.on('connection', (socket) => {
     }
 
     io.to(id).emit('playerUpdate', publicState(game, id));
-    removeIfEmpty(id);
-    console.log('Disconnected:', socket.id);
+    // Keep an empty game for a while, so players whose connection dropped can come back
+    if (!game.whiteId && !game.blackId && !game.emptyTimer) {
+      game.emptyTimer = setTimeout(() => removeIfEmpty(id), EMPTY_GAME_GRACE_MS);
+    }
+    console.log('Disconnected:', socket.id, reason);
   });
 });
 

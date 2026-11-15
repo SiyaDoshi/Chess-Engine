@@ -17,6 +17,48 @@ def loadImages():
             p.image.load('images/' + piece + '.png'), (SQ_SIZE, SQ_SIZE))
 
 
+def choosePromotion(screen, color):
+    """
+    Ask which piece a pawn promotes to. Shows the four pieces over the board;
+    click one or press Q, R, B or N. Escape cancels the move (returns None).
+    """
+    keys = {p.K_q: 'Q', p.K_r: 'R', p.K_b: 'B', p.K_n: 'N'}
+    pieces = ['Q', 'R', 'B', 'N']
+    boxW, boxH = SQ_SIZE * 4 + 20, SQ_SIZE + 50
+    x0, y0 = (WIDTH - boxW) // 2, (HEIGHT - boxH) // 2
+
+    shade = p.Surface((WIDTH, HEIGHT), p.SRCALPHA)
+    shade.fill((0, 0, 0, 140))
+    screen.blit(shade, (0, 0))
+    p.draw.rect(screen, (240, 230, 215), (x0, y0, boxW, boxH), border_radius=10)
+    font = p.font.SysFont('Arial', 18, True)
+    screen.blit(font.render('Promote to (Q / R / B / N)', True, (44, 36, 27)), (x0 + 10, y0 + 10))
+    choices = []
+    for i, piece in enumerate(pieces):
+        rect = p.Rect(x0 + 10 + i * SQ_SIZE, y0 + 40, SQ_SIZE, SQ_SIZE)
+        p.draw.rect(screen, (240, 217, 181) if i % 2 == 0 else (181, 136, 99), rect)
+        screen.blit(IMAGES[color + piece], rect)
+        choices.append((rect, piece))
+    p.display.flip()
+
+    while True:
+        for e in p.event.get():
+            if e.type == p.QUIT:
+                p.event.post(e)  # let the main loop close the window
+                return None
+            if e.type == p.KEYDOWN:
+                if e.key == p.K_ESCAPE:
+                    return None
+                if e.key in keys:
+                    return keys[e.key]
+            if e.type == p.MOUSEBUTTONDOWN:
+                pos = getattr(e, 'pos', None) or p.mouse.get_pos()
+                for rect, piece in choices:
+                    if rect.collidepoint(pos):
+                        return piece
+        p.time.wait(15)
+
+
 def drawMenu(screen):
     screen.fill(p.Color("white"))
     titleFont = p.font.SysFont("Helvetica", 36, True, False)
@@ -93,6 +135,15 @@ def main():
                     if len(playerClicks) == 2:
                         move = ChessEngine.Move(
                             playerClicks[0], playerClicks[1], gs.board)
+                        # A pawn reaching the last rank: ask which piece it becomes
+                        if move.isPawnPromotion and any(move.moveID % 10000 == v.moveID % 10000 for v in validMoves):
+                            choice = choosePromotion(screen, move.pieceMoved[0])
+                            if choice is None:
+                                sqSelected = ()
+                                playerClicks = []
+                                continue
+                            move = ChessEngine.Move(
+                                playerClicks[0], playerClicks[1], gs.board, promotionChoice=choice)
                         print(move.getChessNotation())
                         for i in range(len(validMoves)):
                             if move == validMoves[i]:
