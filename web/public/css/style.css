@@ -1962,17 +1962,25 @@ body[data-bg="light"] .logo { color: #7d5531; }
 .engine-details { margin-top: 0.65rem; }
 .engine-details[hidden] { display: none; }
 .engine-help {
-  margin: 0.6rem 0 0;
-  padding: 0.6rem 0.75rem;
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 0.85rem;
   border-radius: 8px;
   background: var(--panel-2);
-  font-size: 0.8rem;
-  line-height: 1.4;
+  font-size: 0.82rem;
+  line-height: 1.45;
 }
-.engine-help div { display: grid; grid-template-columns: 4.7rem 1fr; gap: 0.5rem; }
-.engine-help div + div { margin-top: 0.35rem; }
+.engine-help-title {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.engine-help dl { margin: 0; }
+.engine-help div + div { margin-top: 0.55rem; }
 .engine-help dt { color: var(--text); font-weight: 600; }
-.engine-help dd { margin: 0; color: var(--muted); }
+.engine-help dd { margin: 0.1rem 0 0; color: var(--muted); }
 .engine-help[hidden] { display: none; }
 
 /* Settings: hide the dots that show where a picked-up piece can go */
