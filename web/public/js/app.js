@@ -356,10 +356,14 @@ document.querySelectorAll('[data-mode]').forEach((btn) => {
       startLocal('local-pvp');
     }
     if (m === 'local-ai') {
+      saveMyName('engine-name');
       applyEngineColorChoice();
       startLocal('local-ai');
     }
-    if (m === 'online-create') createOnlineGame();
+    if (m === 'online-create') {
+      saveMyName('online-name');
+      createOnlineGame();
+    }
   });
 });
 
@@ -373,12 +377,8 @@ const homePanels = ['engine-panel', 'pvp-panel', 'online-panel'].map((id) => doc
 function showHomePanel(id) {
   homeMain.hidden = !!id;
   for (const panel of homePanels) panel.hidden = panel.id !== id;
-  for (const input of document.querySelectorAll('.my-name')) input.value = storedName('chess-name');
-  if (id === 'pvp-panel') {
-    document.getElementById('pvp-name-w').value = storedName('chess-name-w');
-    document.getElementById('pvp-name-b').value = storedName('chess-name-b');
-    document.getElementById('pvp-name-w').focus();
-  }
+  for (const input of document.querySelectorAll('.my-name, #pvp-panel input')) input.value = '';
+  if (id === 'pvp-panel') document.getElementById('pvp-name-w').focus();
   if (id === 'engine-panel') renderEngineChoices();
   if (id) document.getElementById('link-notice').hidden = true;
 }
@@ -424,10 +424,8 @@ document.getElementById('btn-two-player').addEventListener('click', () => showHo
 for (const back of document.querySelectorAll('[data-back]')) {
   back.addEventListener('click', () => showHomePanel(null));
 }
-for (const input of document.querySelectorAll('.my-name')) {
-  input.value = storedName('chess-name');
-  input.addEventListener('input', () => storeName('chess-name', cleanName(input.value)));
-}
+/** The name typed for this game ('' if none), saved for this tab. */
+const saveMyName = (inputId) => storeName('chess-name', cleanName(document.getElementById(inputId).value));
 function savePvpNames() {
   storeName('chess-name-w', cleanName(document.getElementById('pvp-name-w').value));
   storeName('chess-name-b', cleanName(document.getElementById('pvp-name-b').value));
@@ -633,13 +631,16 @@ function updateModeUI({ onlineLobby = false, onlinePlaying = false } = {}) {
 const NAME_MAX = 20;
 let onlineNames = { w: '', b: '' };
 
+/* Names last for this tab only (so a refresh keeps them) and are never
+   filled in for the next game. Older versions kept them in localStorage. */
+try { for (const k of ['chess-name', 'chess-name-w', 'chess-name-b']) localStorage.removeItem(k); } catch { /* private mode */ }
 function storedName(key) {
-  try { return localStorage.getItem(key) || ''; } catch { return ''; }
+  try { return sessionStorage.getItem(key) || ''; } catch { return ''; }
 }
 function storeName(key, value) {
   try {
-    if (value) localStorage.setItem(key, value);
-    else localStorage.removeItem(key);
+    if (value) sessionStorage.setItem(key, value);
+    else sessionStorage.removeItem(key);
   } catch { /* private mode */ }
 }
 const cleanName = (raw) => [...raw.replace(/\s+/g, ' ').trim()].slice(0, NAME_MAX).join('').trim();
@@ -1636,6 +1637,7 @@ document.getElementById('join-form').addEventListener('submit', (e) => {
     return;
   }
   input.value = '';
+  saveMyName('online-name');
   window.history.pushState({}, '', `/g/${code}`);
   joinOnlineGame(code);
 });
