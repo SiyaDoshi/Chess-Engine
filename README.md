@@ -121,4 +121,4 @@ The live demo runs on Render's free tier, which sleeps after a period without vi
 
 ## License
 
-MIT for the code, see [LICENSE](LICENSE). Pieces and fonts keep their own licenses listed above.
+© 2026 Siya Doshi. All rights reserved. The code is shared for viewing only; see [LICENSE](LICENSE). Pieces and fonts keep their own licenses, listed above.
