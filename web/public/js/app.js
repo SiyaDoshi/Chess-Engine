@@ -439,7 +439,7 @@ for (const id of ['pvp-name-w', 'pvp-name-b']) {
   });
 }
 
-btnHome.addEventListener('click', goHome);
+btnHome.addEventListener('click', requestHome);
 btnUndo.addEventListener('click', undoLocal);
 btnReset.addEventListener('click', resetLocal);
 playAgainBtn.addEventListener('click', resetLocal);
@@ -447,6 +447,52 @@ document.getElementById('btn-view-board').addEventListener('click', () => {
   gameOverEl.hidden = true;
 });
 btnCopy.addEventListener('click', copyShareLink);
+
+/*
+ * Leaving a game (Home button or the browser's back button) asks first
+ * once moves have been played and the game isn't over.
+ */
+const leaveEl = document.getElementById('leave-game');
+const inGame = () => mode === 'local-ai' || mode === 'local-pvp' || mode === 'online';
+const gameInProgress = () => inGame() && !!chess && chess.history().length > 0 && !gameOver;
+function askToLeave() {
+  leaveEl.hidden = false;
+  document.getElementById('btn-leave-game').focus();
+}
+let leaving = false;
+function leaveGame() {
+  leaveEl.hidden = true;
+  // Step back over the game's own history entry; popstate then goes home.
+  if (window.history.state?.gambit === 'game') {
+    leaving = true;
+    window.history.back();
+  } else {
+    goHome();
+  }
+}
+function requestHome() {
+  if (gameInProgress()) askToLeave();
+  else leaveGame();
+}
+document.getElementById('btn-leave-game').addEventListener('click', leaveGame);
+document.getElementById('btn-keep-playing').addEventListener('click', () => { leaveEl.hidden = true; });
+window.addEventListener('popstate', (e) => {
+  if (!inGame()) {
+    const match = window.location.pathname.match(/^\/g\/([a-z0-9]+)$/i);
+    if (match) joinOnlineGame(match[1].toLowerCase());
+    return;
+  }
+  if (e.state?.gambit === 'game') return;
+  if (leaving || !gameInProgress()) {
+    leaving = false;
+    leaveEl.hidden = true;
+    goHome();
+    return;
+  }
+  // Back pressed mid-game: stay on the game and ask.
+  window.history.pushState({ gambit: 'game' }, '', onlineGameId ? `/g/${onlineGameId}` : '/');
+  askToLeave();
+});
 
 const pathMatch = window.location.pathname.match(/^\/g\/([a-z0-9]+)$/i);
 if (pathMatch) {
@@ -977,6 +1023,7 @@ function cancelEngine() {
 
 function goHome() {
   document.getElementById('link-notice').hidden = true;
+  document.getElementById('leave-game').hidden = true;
   showOnlinePanel(false);
   cancelEngine();
   hideResult();
@@ -1065,6 +1112,8 @@ function stopHomePreview() {
 }
 
 function startLocal(selectedMode) {
+  // Its own history entry, so the browser's back button comes back to Gambit's home page.
+  if (window.history.state?.gambit !== 'game') window.history.pushState({ gambit: 'game' }, '', '/');
   mode = selectedMode;
   hideResult();
   showEngineInfo(null);
@@ -1497,7 +1546,7 @@ function createOnlineGame() {
     }
     saveSeat(res.gameId, res.token);
     enterOnline(res.gameId, res.color, res.state);
-    window.history.pushState({}, '', res.sharePath);
+    window.history.pushState({ gambit: 'game' }, '', res.sharePath);
   });
 }
 
@@ -1638,7 +1687,7 @@ document.getElementById('join-form').addEventListener('submit', (e) => {
   }
   input.value = '';
   saveMyName('online-name');
-  window.history.pushState({}, '', `/g/${code}`);
+  window.history.pushState({ gambit: 'game' }, '', `/g/${code}`);
   joinOnlineGame(code);
 });
 

@@ -1057,6 +1057,10 @@ body:not([data-bg="light"]) .player-bar[data-side="b"] .side-badge img {
   margin: 0.35rem 0 1.1rem;
   color: var(--muted);
 }
+/* Asked before leaving a game: shows at once, no game-over delay. */
+.leave-game,
+.leave-game .game-over-card { animation-delay: 0s; animation-duration: 0.2s; }
+.leave-game .game-over-title { font-size: 1.5rem; }
 .game-over-actions {
   display: flex;
   gap: 0.5rem;
