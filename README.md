@@ -132,7 +132,7 @@ Every level faced two Stockfish settings, from 24 openings, playing each opening
 
 ## Try it locally
 
-You're welcome to download Gambit and run it on your own computer:
+To run Gambit on your own computer:
 
 ```bash
 cd web
