@@ -337,7 +337,7 @@
         <div id="engine-card" class="panel-card engine-card" hidden>
           <div class="engine-head">
             <span class="engine-title">Score</span>
-            <span id="engine-eval" class="engine-eval" title="Who is ahead, in pawns. Positive favors White, negative favors Black. M3 means checkmate in three.">0.0</span>
+            <span id="engine-eval" class="engine-eval" title="Who is ahead, in pawns. Positive favors White, negative favors Black. M3 means White can force checkmate in three moves; −M3 means Black can.">0.0</span>
           </div>
           <button type="button" id="btn-engine-help" class="details-btn" aria-expanded="false" aria-controls="engine-details">How Gambit chose its move</button>
           <!-- Hidden by default: the best line would tell you the engine's plan -->
@@ -351,7 +351,7 @@
             <div class="engine-help">
               <p class="engine-help-title">What these mean</p>
               <dl>
-                <div><dt>Score</dt><dd>Who is ahead, in pawns. Positive favors White, negative favors Black. M3 means mate in three.</dd></div>
+                <div><dt>Score</dt><dd>Who is ahead, in pawns. Positive favors White, negative favors Black. M3 means White can force checkmate in three moves; −M3 means Black can.</dd></div>
                 <div><dt>Depth</dt><dd>How many moves ahead Gambit searched. Each side's move counts as one.</dd></div>
                 <div><dt>Positions</dt><dd>How many positions Gambit evaluated.</dd></div>
                 <div><dt>Time</dt><dd>How long Gambit took to choose.</dd></div>
