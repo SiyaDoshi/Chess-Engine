@@ -58,7 +58,7 @@ The transposition table matters most in deeper searches: at depth 5 it cuts the 
 
 ### Strength
 
-Measured over **96 games per level** against **Stockfish 16.1** in its strength-limited mode, on the 60s + 0.6s clock its Elo setting is calibrated for. Each level played two Stockfish settings from 24 different openings, each opening once with each colour. The games run on GitHub Actions (the **Elo** workflow, 18 jobs side by side) and `bench/elo/summarize.mjs` turns them into a performance rating with a 95% range:
+Measured over **96 games per level** against **Stockfish 16.1** in its strength-limited mode, on the 60s + 0.6s clock its Elo setting is calibrated for. Each level played two Stockfish settings from 24 different openings, each opening once with each color. The games run on GitHub Actions (the **Elo** workflow, 18 jobs side by side) and `bench/elo/summarize.mjs` turns them into a performance rating with a 95% range:
 
 | Level | Search | Games (W / D / L) | Result | Elo (95% range) |
 | --- | --- | --- | --- | --- |
