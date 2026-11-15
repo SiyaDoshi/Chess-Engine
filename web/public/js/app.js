@@ -664,7 +664,9 @@ function updateModeUI({ onlineLobby = false, onlinePlaying = false } = {}) {
 
   clocksEl.classList.toggle('single-clock', single);
   renderPlayers();
-  colorField.hidden = !single;
+  // Your colour is chosen before a game against the engine, so there's no
+  // "Play as" menu during it.
+  colorField.hidden = true;
   hintBtn.hidden = !single;
 
   if (mode === 'online') {
