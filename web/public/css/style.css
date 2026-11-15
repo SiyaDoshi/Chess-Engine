@@ -1292,7 +1292,7 @@ body:not([data-bg="light"]) .player-bar[data-side="b"] .side-badge img {
   overflow-y: auto;
   scrollbar-width: thin;
 }
-.side-panel > .moves-card:has(.move-list:not(:empty)) { min-height: 8.5rem; }
+.side-panel > .moves-card:has(.move-list li:nth-child(4)) { min-height: 8.5rem; }
 
 .panel-card {
   background: var(--panel);
