@@ -1652,6 +1652,10 @@ function showLinkNotice(full) {
 /** Someone who opened an invite link has had no chance to give a name: ask once. */
 const joinNameEl = document.getElementById('join-name');
 const joinNameInput = document.getElementById('join-name-input');
+const joinSkipKey = (gameId) => `gambit-name-skipped-${gameId}`;
+function joinNameSkipped(gameId) {
+  try { return sessionStorage.getItem(joinSkipKey(gameId)) === '1'; } catch { return false; }
+}
 function askJoinName() {
   joinNameInput.value = '';
   joinNameEl.hidden = false;
@@ -1659,6 +1663,7 @@ function askJoinName() {
 }
 function closeJoinName() {
   joinNameEl.hidden = true;
+  try { if (onlineGameId) sessionStorage.setItem(joinSkipKey(onlineGameId), '1'); } catch { /* private mode */ }
 }
 document.getElementById('join-name-form').addEventListener('submit', (e) => {
   e.preventDefault();
@@ -1676,8 +1681,6 @@ function joinOnlineGame(gameId, { fromLink = true } = {}) {
   showError(menuError, null);
   const s = ensureSocket();
   const id = String(gameId).trim().toLowerCase();
-  const keys = seatKeys(id);
-  const returning = Boolean(keys.token || keys.backupToken);
   joinOrRestore(s, id, (res) => {
     if (!res.ok) {
       // Full game, dead or mistyped link: explain it on the home page and drop /g/... from the URL
@@ -1688,8 +1691,10 @@ function joinOnlineGame(gameId, { fromLink = true } = {}) {
     }
     saveSeat(res.gameId, res.token);
     enterOnline(res.gameId, res.color, res.state);
+    // Ask unless this seat already has a name, or the prompt was skipped in this tab
     const seated = res.color === 'w' || res.color === 'b';
-    if (fromLink && seated && !returning && !storedName('chess-name')) askJoinName();
+    const seatName = res.color === 'w' ? res.state.whiteName : res.state.blackName;
+    if (fromLink && seated && !seatName && !storedName('chess-name') && !joinNameSkipped(res.gameId)) askJoinName();
   });
 }
 
