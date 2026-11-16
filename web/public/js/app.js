@@ -1039,6 +1039,7 @@ function goHome() {
   clearLocalGame();
   document.getElementById('link-notice').hidden = true;
   document.getElementById('leave-game').hidden = true;
+  document.getElementById('join-name').hidden = true;
   showOnlinePanel(false);
   cancelEngine();
   hideResult();
@@ -1648,10 +1649,35 @@ function showLinkNotice(full) {
   notice.hidden = false;
 }
 
-function joinOnlineGame(gameId) {
+/** Someone who opened an invite link has had no chance to give a name: ask once. */
+const joinNameEl = document.getElementById('join-name');
+const joinNameInput = document.getElementById('join-name-input');
+function askJoinName() {
+  joinNameInput.value = '';
+  joinNameEl.hidden = false;
+  joinNameInput.focus();
+}
+function closeJoinName() {
+  joinNameEl.hidden = true;
+}
+document.getElementById('join-name-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const name = cleanName(joinNameInput.value);
+  closeJoinName();
+  if (name && mode === 'online' && (myColor === 'w' || myColor === 'b')) setPlayerName(myColor, name);
+});
+document.getElementById('btn-join-skip').addEventListener('click', closeJoinName);
+joinNameInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeJoinName();
+  e.stopPropagation();
+});
+
+function joinOnlineGame(gameId, { fromLink = true } = {}) {
   showError(menuError, null);
   const s = ensureSocket();
   const id = String(gameId).trim().toLowerCase();
+  const keys = seatKeys(id);
+  const returning = Boolean(keys.token || keys.backupToken);
   joinOrRestore(s, id, (res) => {
     if (!res.ok) {
       // Full game, dead or mistyped link: explain it on the home page and drop /g/... from the URL
@@ -1662,6 +1688,8 @@ function joinOnlineGame(gameId) {
     }
     saveSeat(res.gameId, res.token);
     enterOnline(res.gameId, res.color, res.state);
+    const seated = res.color === 'w' || res.color === 'b';
+    if (fromLink && seated && !returning && !storedName('chess-name')) askJoinName();
   });
 }
 
@@ -1774,7 +1802,7 @@ document.getElementById('join-form').addEventListener('submit', (e) => {
   input.value = '';
   saveMyName('online-name');
   window.history.pushState({ gambit: 'game' }, '', `/g/${code}`);
-  joinOnlineGame(code);
+  joinOnlineGame(code, { fromLink: false });
 });
 
 document.getElementById('btn-copy-code').addEventListener('click', async (e) => {

@@ -1063,6 +1063,8 @@ body:not([data-bg="light"]) .player-bar[data-side="b"] .side-badge img {
 .leave-game,
 .leave-game .game-over-card { animation-delay: 0s; animation-duration: 0.2s; }
 .leave-game .game-over-title { font-size: 1.5rem; }
+.join-name .game-over-card { width: min(320px, 86%); }
+.join-name .name-input-home { margin-bottom: 1rem; text-align: center; }
 .game-over-actions {
   display: flex;
   gap: 0.5rem;
